@@ -169,11 +169,15 @@ char node_id = 'A';
 // 	this is easily fixed however
 // 	we can just invert all of the bits of a negative number
 // 	and it will be correctly set for hypercube functionality
-// TODO
-// 	how does this handle signed 0s, nan, infinity, etc...
 //
 // to fully support double keys
 // 	use BIT_WIDTH = 64
+//
+//	+infinity will be greater than all other numbers
+// -infinity will be less than all other numbers
+// +nan will be greater than +infinity
+// -nan will be less than -infinity
+// -0 is converted to +0
 static inline phtree_key_t double_to_key (double x)
 {
 	phtree_key_t bits;
@@ -182,6 +186,8 @@ static inline phtree_key_t double_to_key (double x)
 	// flip sign bit if value is positive
 	if (x >= 0)
 	{
+		// handle negative zero by converting it to positive zero
+		bits = bits & (KEY_MAX >> 1);
 		bits ^= (KEY_ONE << (BIT_WIDTH - 1));
 	}
 	// invert everything if value is negative

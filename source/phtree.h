@@ -134,7 +134,6 @@ typedef struct phtree_node_t
 typedef struct
 {
 	phtree_node_t root;
-	// dont have more than 2^64 entries :D
 } phtree_t;
 
 // we are _not_ supporting more than 3 dimensions
