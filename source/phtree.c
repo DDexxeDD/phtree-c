@@ -378,6 +378,18 @@ phtree_node_t* node_create (phtree_node_t* parent, uint16_t infix_length, uint16
 	new_node->id = node_id;
 	node_id++;
 
+	phtree_key_t key_mask = KEY_MAX << (postfix_length + 1);
+
+	for (int dimension = 0; dimension < DIMENSIONS; dimension++)
+	{
+		// set the new node's postfix bits to 0
+		new_node->point.values[dimension] &= key_mask;
+		// set the bits at node to 1
+		// 	this makes the node->point the center of the node
+		// 	which is useful later in window queries
+		new_node->point.values[dimension] |= KEY_ONE << postfix_length;
+	}
+
 	if (postfix_length == 0)
 	{
 		node_add_entry (new_node, point, value);
@@ -774,13 +786,40 @@ void node_query_window (phtree_node_t* node, phtree_window_query_t* query)
 		return;
 	}
 
+	/*
+	 * these masks are used to accelerate queries
+	 * 	when iterating children
+	 * 		we can do a broad check if a child node overlaps the query window at all
+	 * 		without needing to go to the child node and performing node_in_window
+	 * 		
+	 * 	if the child node does not overlap the query window
+	 * 		we save a memory jump to that node
+	 */
+	phtree_key_t mask_lower = 0;
+	phtree_key_t mask_upper = 0;
+
+	for (int dimension = 0; dimension < DIMENSIONS; dimension++)
+	{
+		/*
+		 * for these >= to work properly
+		 * 	node->point has to be set to the mid point of the node
+		 * 	we set node->point to the mid point, during node creation
+		 * 		so we dont have to calculate it here
+		 */
+		mask_lower <<= 1;
+		mask_lower |= query->min.values[dimension] >= node->point.values[dimension];
+
+		mask_upper <<= 1;
+		mask_upper |= query->max.values[dimension] >= node->point.values[dimension];
+	}
+
 	if (node_is_leaf (node))
 	{
 		for (int iter = 0; iter < NODE_CHILD_COUNT; iter++)
 		{
 			phtree_entry_t* child = node->children[iter];
 
-			if (child)
+			if (child && ((iter | mask_lower) & mask_upper) == iter)
 			{
 				if (entry_in_window (child, query))
 				{
@@ -794,9 +833,9 @@ void node_query_window (phtree_node_t* node, phtree_window_query_t* query)
 
 	// if the node _is_ in the window and _is not_ a leaf
 	// 	recurse through the node's children
-	for (int iter = 0; iter < NODE_CHILD_COUNT; iter++)
+	for (unsigned int iter = 0; iter < NODE_CHILD_COUNT; iter++)
 	{
-		if (node->children[iter])
+		if (node->children[iter] && ((iter | mask_lower) & mask_upper) == iter)
 		{
 			node_query_window (node->children[iter], query);
 		}
