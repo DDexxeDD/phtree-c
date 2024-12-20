@@ -204,9 +204,9 @@ static inline phtree_key_t double_to_key (double x)
 // 		for point_a to be greater than or equal to point_b
 static inline bool point_greater_equal (phtree_point_t* point_a, phtree_point_t* point_b)
 {
-	for (int iter = 0; iter < DIMENSIONS; iter++)
+	for (int dimension = 0; dimension < DIMENSIONS; dimension++)
 	{
-		if (point_a->values[iter] < point_b->values[iter])
+		if (point_a->values[dimension] < point_b->values[dimension])
 		{
 			return false;
 		}
@@ -220,9 +220,9 @@ static inline bool point_greater_equal (phtree_point_t* point_a, phtree_point_t*
 // 		for point_a to be less than or equal to point_b
 static inline bool point_less_equal (phtree_point_t* point_a, phtree_point_t* point_b)
 {
-	for (int iter = 0; iter < DIMENSIONS; iter++)
+	for (int dimension = 0; dimension < DIMENSIONS; dimension++)
 	{
-		if (point_a->values[iter] > point_b->values[iter])
+		if (point_a->values[dimension] > point_b->values[dimension])
 		{
 			return false;
 		}
@@ -234,9 +234,9 @@ static inline bool point_less_equal (phtree_point_t* point_a, phtree_point_t* po
 static inline bool point_equal (phtree_point_t* point_a, phtree_point_t* point_b)
 {
 	phtree_key_t result = 0;
-	for (int iter = 0; iter < DIMENSIONS; iter++)
+	for (int dimension = 0; dimension < DIMENSIONS; dimension++)
 	{
-		result |= point_a->values[iter] - point_b->values[iter];
+		result |= point_a->values[dimension] - point_b->values[dimension];
 	}
 
 	return (result == 0);
@@ -254,13 +254,10 @@ static inline bool prefix_greater_equal (phtree_point_t* point_a, phtree_point_t
 	phtree_point_t local_a = *point_a;
 	phtree_point_t local_b = *point_b;
 
-	// simd _mm256_srlv_epi64
-	// 	can shift up to 4 64 bit integers
-	// 	requires avx2
-	for (int iter = 0; iter < DIMENSIONS; iter++)
+	for (int dimension = 0; dimension < DIMENSIONS; dimension++)
 	{
-		local_a.values[iter] >>= postfix_length + 1;
-		local_b.values[iter] >>= postfix_length + 1;
+		local_a.values[dimension] >>= postfix_length + 1;
+		local_b.values[dimension] >>= postfix_length + 1;
 	}
 
 	return (point_greater_equal (&local_a, &local_b));
@@ -273,10 +270,10 @@ static inline bool prefix_less_equal (phtree_point_t* point_a, phtree_point_t* p
 	phtree_point_t local_a = *point_a;
 	phtree_point_t local_b = *point_b;
 
-	for (int iter = 0; iter < DIMENSIONS; iter++)
+	for (int dimension = 0; dimension < DIMENSIONS; dimension++)
 	{
-		local_a.values[iter] >>= postfix_length + 1;
-		local_b.values[iter] >>= postfix_length + 1;
+		local_a.values[dimension] >>= postfix_length + 1;
+		local_b.values[dimension] >>= postfix_length + 1;
 	}
 
 	return (point_less_equal (&local_a, &local_b));
@@ -307,7 +304,7 @@ hypercube_address_t calculate_hypercube_address (phtree_point_t* point, phtree_n
 	hypercube_address_t address = 0;
 
 	// for each dimension
-	for (int iter = 0; iter < DIMENSIONS; iter++)
+	for (int dimension = 0; dimension < DIMENSIONS; dimension++)
 	{
 		// every time we process a dimension
 		// 	we need to move the current value of address to make room for the new dimension
@@ -318,7 +315,7 @@ hypercube_address_t calculate_hypercube_address (phtree_point_t* point, phtree_n
 		// then move that value to the bottom of the bits
 		// add that value to the address
 		// 	which we have already shifted to make room
-		address |= (bit_mask & point->values[iter]) >> node->postfix_length;
+		address |= (bit_mask & point->values[dimension]) >> node->postfix_length;
 	}
 
 	return address;
@@ -432,9 +429,9 @@ int number_of_diverging_bits (phtree_point_t* point_a, phtree_point_t* point_b)
 {
 	unsigned int difference = 0;
 
-	for (size_t iter = 0; iter < DIMENSIONS; iter++)
+	for (size_t dimension = 0; dimension < DIMENSIONS; dimension++)
 	{
-		difference |= (point_a->values[iter] ^ point_b->values[iter]);
+		difference |= (point_a->values[dimension] ^ point_b->values[dimension]);
 	}
 
 	// count_leading_zeroes always uses the 64 bit implementation
@@ -871,13 +868,13 @@ phtree_window_query_t* window_query_create (phtree_point_t min, phtree_point_t m
 	// make sure min and max are properly populated
 	// 	all minimum values in min
 	// 	all maximum values in max
-	for (int iter = 0; iter < DIMENSIONS; iter++)
+	for (int dimension = 0; dimension < DIMENSIONS; dimension++)
 	{
-		if (max.values[iter] < min.values[iter])
+		if (max.values[dimension] < min.values[dimension])
 		{
-			phtree_key_t temp = min.values[iter];
-			min.values[iter] = max.values[iter];
-			max.values[iter] = temp;
+			phtree_key_t temp = min.values[dimension];
+			min.values[dimension] = max.values[dimension];
+			max.values[dimension] = temp;
 		}
 	}
 
@@ -898,10 +895,10 @@ void window_query_clear (phtree_window_query_t* query)
 {
 	cvector_clear (query->entries);
 
-	for (int iter = 0; iter < DIMENSIONS; iter++)
+	for (int dimension = 0; dimension < DIMENSIONS; dimension++)
 	{
-		query->min.values[iter] = 0;
-		query->max.values[iter] = 0;
+		query->min.values[dimension] = 0;
+		query->max.values[dimension] = 0;
 	}
 }
 
