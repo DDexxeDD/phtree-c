@@ -709,6 +709,7 @@ void tree_remove (phtree_t* tree, phtree_point_t* point)
 				free (current_node);
 
 				current_node = parent;
+				parent = current_node->parent;
 				child->infix_length = current_node->postfix_length - child->postfix_length - 1;
 			}
 			// XXX
