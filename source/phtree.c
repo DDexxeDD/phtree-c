@@ -452,6 +452,7 @@ phtree_node_t* node_insert_split (phtree_node_t* node, phtree_node_t* sub_node, 
 	new_node->child_count++;
 
 	sub_node->infix_length = (new_node->postfix_length - sub_node->postfix_length) - 1;
+	sub_node->parent = new_node;
 
 	return new_node;
 }
@@ -706,11 +707,13 @@ void tree_remove (phtree_t* tree, phtree_point_t* point)
 				}
 
 				parent->children[calculate_hypercube_address (&current_node->point, parent)] = child;
+				child->parent = parent;
+				child->infix_length = child->parent->postfix_length - child->postfix_length - 1;
+
 				free (current_node);
 
 				current_node = parent;
 				parent = current_node->parent;
-				child->infix_length = current_node->postfix_length - child->postfix_length - 1;
 			}
 			// XXX
 			// 	we dont need to check if current_node->child_count == 0
