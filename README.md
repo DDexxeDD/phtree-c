@@ -28,32 +28,43 @@ If you catch a bug, think the design of this library could or should be differen
 
 Add the .h and .c of the phtree bit width and dimensionality you want, to your source tree.  You can have all 3 dimensionalities if you want, they do no conflict with eachother.  Include the .h file(s) wherever you want to have a tree.  You can not have 32 and 64 bit trees of the same dimensions at the same time as they use the same type names.  If you want to use 32 and 64 bit trees of the same dimensionality see [Advanced Usage](#advanced-usage) below.
 
-**Define an element to be stored in the tree.**
+### Define an element to be stored in the tree.
+
+```
+typedef struct
+{
+  ...
+} my_element;
+```
 
 The tree will use user defined functions to allocate and deallocate these elements as necessary.
 
-**Define a function to allocate an element you want to store in the tree**
+### Define a function to allocate an element you want to store in the tree
 
 `void* element_create ();`
+
 This function will need to allocate and initialize an element.  It should return a pointer to the allocated element.
 
-**Define a function to deallocate an element**
+### Define a function to deallocate an element
 
 `void element_destory (void* element);`
+
 This function will need to deallocate anything in the element that needs to be deallocated, as well as deallocate the element itself.
 
-**Define a function to convert a single value to a phtree_key_t**
+### Define a function to convert a single value to a phtree_key_t
 
 `phtree_key_t convert_to_key (void* input);`
+
 This function needs to convert whatever is passed in to it (likely an integer or float), into a single phtree_key_t value.
 
-**Define a function to convert a more complex type into a tree point**
+### Define a function to convert a more complex type into a tree point
 
 `void convert_to_point (tree_t* tree, point* out, void* index)`
+
 (tree and point will be the types specific to your chosen dimensionality)
 This function needs to convert whatever your indexes are based on, into a point in the tree.  You should use your chosen tree's point_set function to set the 'out' argument.  The point_set function internally calls the tree's convert_to_key function on each of the values passed in to it, so you do not need to convert values in the convert_to_point function.
 
-**Define iteration functions for iterating or querying the tree**
+### Define iteration functions for iterating or querying the tree
 
 Unless you only ever need single elements from the tree, you will need to define functions for iterating the entire tree with the for_each function, or iterating elements with window queries.  You will need to define a phtree_iteration_function_t.  An iteration function takes an element to be worked on and a pointer to any outside data you want to pass in to the function.  If you want to cache elements found in a query, pass the structure you want to cache elements in as the data argument, and put the elements in that structure using the iteration function.
 
