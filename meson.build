@@ -1,16 +1,13 @@
 project('phtree', 'c')
 
-cc = meson.get_compiler('c')
-
 include = [
   include_directories('.'),
-  include_directories('external/cvector'),
+  include_directories('example/external/cvector'),
 ]
 
 source_files = [
-  'source/main.c',
-  'source/phtree.c',
-  'source/print.c',
+  'phtree32_2d.c',
+  'example/main.c',
 ]
 
 phtree_binary = executable (
