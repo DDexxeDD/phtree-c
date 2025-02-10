@@ -26,7 +26,7 @@ If you catch a bug, think the design of this library could or should be differen
 
 ## Simple Usage
 
-Add the .h and .c of the phtree bit width and dimensionality you want, to your source tree.  You can have all 3 dimensionalities if you want, they do no conflict with eachother.  Include the .h file(s) wherever you want to have a tree.  You can not have 32 and 64 bit trees of the same dimensions at the same time as they use the same type names.  If you want to use 32 and 64 bit trees of the same dimensionality see [Advanced Usage](#advanced-usage) below.
+The phtree source files are in the `source` folder, add the .h and .c of the phtree bit width and dimensionality you want, to your source tree.  You can have all 3 dimensionalities if you want, they do not conflict with eachother.  You can not have 32 and 64 bit trees of the same dimensions at the same time as they use the same type names.  If you want to use 32 and 64 bit trees of the same dimensionality see [Advanced Usage](#advanced-usage) below.
 
 ### Define an element to be stored in the tree.
 
