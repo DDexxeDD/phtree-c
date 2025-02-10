@@ -1,6 +1,6 @@
 # PH-Tree C
 
-A C implementation of a [PH-Tree](https://tzaeschke.github.io/phtree-site/).  A PH-Tree is a spatial indexing data structure like an r-tree or a kd-tree.
+A C implementation of a [PH-Tree](https://tzaeschke.github.io/phtree-site/).  A PH-Tree is a spatial indexing data structure like an quadtree or octree.
 
 This is a 32 or 64 bit, single map implementation.  That means only 1 element is stored at each index.  However, you define what an element is, so you can store as much and whatever data you want in an element (such as collections, which will turn this into a multi map).
 
@@ -19,9 +19,11 @@ For this library to work you _must_ define a few things.
 The example demonstrates all of these necessary definitions.
 
 
-## Contributing
+## Contribute/Contact
 
 If you catch a bug, think the design of this library could or should be different, or would like to see some different/better documentation, please create an issue!
+
+There is also a [PH-Tree Discord](https://discord.gg/YmJTWYHPCA) server if you are interested.
 
 
 ## Simple Usage
