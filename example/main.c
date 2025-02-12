@@ -4,7 +4,7 @@
 
 #include "cvector.h"
 
-#include "source/phtree32_2d.h"
+#include "source/32bit/phtree_2d.h"
 
 typedef struct
 {

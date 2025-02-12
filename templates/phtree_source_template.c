@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "phtree{{bit_width}}_{{dimensions}}d.h"
+#include "phtree_{{dimensions}}d.h"
 
 #ifndef _phtree_common_implementation_
 #define _phtree_common_implementation_

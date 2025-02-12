@@ -6,7 +6,7 @@ include = [
 ]
 
 source_files = [
-  'source/phtree32_2d.c',
+  'source/32bit/phtree_2d.c',
   'example/main.c',
 ]
 

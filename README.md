@@ -28,7 +28,7 @@ There is also a [PH-Tree Discord](https://discord.gg/YmJTWYHPCA) server if you a
 
 ## Simple Usage
 
-The phtree source files are in the `source` folder, add the .h and .c of the phtree bit width and dimensionality you want, to your source tree.  You can have all 3 dimensionalities if you want, they do not conflict with eachother.  You can not have 32 and 64 bit trees of the same dimensions at the same time as they use the same type names.  If you want to use 32 and 64 bit trees of the same dimensionality see [Advanced Usage](#advanced-usage) below.
+The phtree source files are in the `source` folder.  Choose a bit width of 32 or 64, and the dimensionality that you want, then add the chosen .h and .c to your source tree.  You can have all 3 dimensionalities of the same bit width if you want, they do not conflict with eachother.  You can not have 32 and 64 bit trees of the same dimensions at the same time as they use the same type names.  If you want to use 32 and 64 bit trees of the same dimensionality see [Advanced Usage](#advanced-usage) below.
 
 ### Define an element to be stored in the tree.
 

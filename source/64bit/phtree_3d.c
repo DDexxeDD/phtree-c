@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "phtree32_3d.h"
+#include "phtree_3d.h"
 
 #ifndef _phtree_common_implementation_
 #define _phtree_common_implementation_
@@ -20,13 +20,13 @@
  */
 #define PHTREE_BIT_WIDTH_MAX 64
 
-// you can safely change this to any number <= 32 and >= 2
-// keys will still be 32 bits in size but the tree will only have a depth of PHTREE_DEPTH
-#define PHTREE_DEPTH 32
+// you can safely change this to any number <= 64 and >= 2
+// keys will still be 64 bits in size but the tree will only have a depth of PHTREE_DEPTH
+#define PHTREE_DEPTH 64
 
 // KEY_ONE is an unsigned value of 1
-#define PHTREE_KEY_ONE UINT32_C(1)
-#define PHTREE_KEY_MAX UINT32_MAX
+#define PHTREE_KEY_ONE UINT64_C(1)
+#define PHTREE_KEY_MAX UINT64_MAX
 
 // hypercubes expect bit values of 0 to be less than bit values of 1
 // 	the sign bit of signed integers breaks this
@@ -47,11 +47,11 @@
 // 				 0 = 1000
 // 				-1 = 0111
 // 				-2 = 0110
-phtree_key_t phtree_int32_to_key (int32_t a)
+phtree_key_t phtree_int64_to_key (int64_t a)
 {
 	phtree_key_t b = 0;
 
-	memcpy (&b, &a, sizeof (uint32_t));
+	memcpy (&b, &a, sizeof (uint64_t));
 	b ^= (PHTREE_KEY_ONE << (PHTREE_BIT_WIDTH - 1));  // flip sign bit
 
 	return b;
@@ -786,7 +786,7 @@ void ph3_free_nodes (ph3_t* tree, ph3_node_t* node)
 		if (node->children[iter])
 		{
 			// do this recursively
-			// worst case our stack is 32 deep
+			// worst case our stack is 64 deep
 			ph3_free_nodes (tree, node->children[iter]);
 		}
 	}
@@ -850,7 +850,7 @@ static void for_each (ph3_t* tree, ph3_node_t* node, void (*function) (void* ele
 		if (node->children[iter])
 		{
 			// do this recursively
-			// worst case our stack is 32 deep
+			// worst case our stack is 64 deep
 			for_each (tree, node->children[iter], function, data);
 		}
 	}

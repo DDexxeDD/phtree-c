@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "phtree64_1d.h"
+#include "phtree_1d.h"
 
 #ifndef _phtree_common_implementation_
 #define _phtree_common_implementation_
