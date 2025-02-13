@@ -929,6 +929,11 @@ void* ph3_find (ph3_t* tree, void* index)
 {
 	ph3_entry_t* entry = find_entry (tree, index);
 
+	if (!entry)
+	{
+		return NULL;
+	}
+
 	return entry->element;
 }
 

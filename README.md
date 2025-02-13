@@ -16,7 +16,9 @@ For this library to work you _must_ define a few things.
 5. A function for converting a user defined type to a phtree_point_t (probably a vector2 or vector3)
 6. Function(s) for what to do when querying or iterating the tree.
 
-The example demonstrates all of these necessary definitions.
+***Check the example for a demonstsration of all of this.***
+
+If you are interested in a simple implementation as reference for understanding or implementing your own phtree, check out the '[reference](https://github.com/DDexxeDD/phtree-c/releases/tag/reference)' tag.
 
 
 ## Contribute/Contact

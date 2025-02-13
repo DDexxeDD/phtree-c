@@ -953,6 +953,11 @@ void* {{prefix}}_find ({{prefix}}_t* tree, void* index)
 {
 	{{prefix}}_entry_t* entry = find_entry (tree, index);
 
+	if (!entry)
+	{
+		return NULL;
+	}
+
 	return entry->element;
 }
 
