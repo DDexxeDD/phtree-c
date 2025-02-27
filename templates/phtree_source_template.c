@@ -431,20 +431,17 @@ static void entry_free ({{prefix}}_t* tree, {{prefix}}_dual_node_t* dual)
 	}
 }
 
-/*
- * set default tree values
- */
 int {{prefix}}_initialize (
 	{{prefix}}_t* tree,
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void*),
 	phtree_key_t (*convert_to_key) (void* input),
+{{^even}}
+	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input))
+{{/even}}
 {{#even}}
 	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input),
 	void (*convert_to_box_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input))
-{{/even}}
-{{^even}}
-	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input))
 {{/even}}
 {
 	{{! change delimiters because of double braces in declaration }}
@@ -471,12 +468,12 @@ int {{prefix}}_initialize (
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void* element),
 	phtree_key_t (*convert_to_key) (void* input),
+{{^even}}
+	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input))
+{{/even}}
 {{#even}}
 	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input),
 	void (*convert_to_box_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input))
-{{/even}}
-{{^even}}
-	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input))
 {{/even}}
 {
 	{{prefix}}_t* tree = phtree_calloc (1, sizeof (*tree));

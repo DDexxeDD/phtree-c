@@ -179,6 +179,13 @@ ph4_t* ph4_create (
 	void (*convert_to_point) (ph4_t* tree, ph4_point_t* out, void* input),
 	void (*convert_to_box_point) (ph4_t* tree, ph4_point_t* out, void* input));
 
+int ph4_initialize (
+	ph4_t* tree,
+	void* (*element_create) (void* input),
+	void (*element_destroy) (void*),
+	phtree_key_t (*convert_to_key) (void* input),
+	void (*convert_to_point) (ph4_t* tree, ph4_point_t* out, void* input),
+	void (*convert_to_box_point) (ph4_t* tree, ph4_point_t* out, void* input));
 
 /*
  * clear all entries/elements from the tree

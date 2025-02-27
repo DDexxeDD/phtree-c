@@ -164,6 +164,12 @@ ph3_t* ph3_create (
 	phtree_key_t (*convert_to_key) (void* input),
 	void (*convert_to_point) (ph3_t* tree, ph3_point_t* out, void* input));
 
+int ph3_initialize (
+	ph3_t* tree,
+	void* (*element_create) (void* input),
+	void (*element_destroy) (void*),
+	phtree_key_t (*convert_to_key) (void* input),
+	void (*convert_to_point) (ph3_t* tree, ph3_point_t* out, void* input));
 
 /*
  * clear all entries/elements from the tree

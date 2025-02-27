@@ -180,25 +180,26 @@ typedef struct {{prefix}}_query_t
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void* element),
 	phtree_key_t (*convert_to_key) (void* input),
+{{^even}}
+	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input));
+{{/even}}
 {{#even}}
 	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input),
 	void (*convert_to_box_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input));
 {{/even}}
+
+int {{prefix}}_initialize (
+	{{prefix}}_t* tree,
+	void* (*element_create) (void* input),
+	void (*element_destroy) (void*),
+	phtree_key_t (*convert_to_key) (void* input),
 {{^even}}
 	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input));
 {{/even}}
-
-{{#unused}}
-/*
- * initialize an existing tree
- */
-int {{prefix}}_initialize (
-	{{prefix}}_t* tree,
-	void* (*element_create) (),
-	void (*element_destroy) (void*),
-	phtree_key_t (*convert_to_key) (void* input),
-	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* index));
-{{/unused}}
+{{#even}}
+	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input),
+	void (*convert_to_box_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input));
+{{/even}}
 
 /*
  * clear all entries/elements from the tree

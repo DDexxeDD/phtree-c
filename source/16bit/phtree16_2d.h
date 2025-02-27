@@ -179,6 +179,13 @@ ph2_t* ph2_create (
 	void (*convert_to_point) (ph2_t* tree, ph2_point_t* out, void* input),
 	void (*convert_to_box_point) (ph2_t* tree, ph2_point_t* out, void* input));
 
+int ph2_initialize (
+	ph2_t* tree,
+	void* (*element_create) (void* input),
+	void (*element_destroy) (void*),
+	phtree_key_t (*convert_to_key) (void* input),
+	void (*convert_to_point) (ph2_t* tree, ph2_point_t* out, void* input),
+	void (*convert_to_box_point) (ph2_t* tree, ph2_point_t* out, void* input));
 
 /*
  * clear all entries/elements from the tree

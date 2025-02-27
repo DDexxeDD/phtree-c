@@ -179,6 +179,13 @@ ph6_t* ph6_create (
 	void (*convert_to_point) (ph6_t* tree, ph6_point_t* out, void* input),
 	void (*convert_to_box_point) (ph6_t* tree, ph6_point_t* out, void* input));
 
+int ph6_initialize (
+	ph6_t* tree,
+	void* (*element_create) (void* input),
+	void (*element_destroy) (void*),
+	phtree_key_t (*convert_to_key) (void* input),
+	void (*convert_to_point) (ph6_t* tree, ph6_point_t* out, void* input),
+	void (*convert_to_box_point) (ph6_t* tree, ph6_point_t* out, void* input));
 
 /*
  * clear all entries/elements from the tree

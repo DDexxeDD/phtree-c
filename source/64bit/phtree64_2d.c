@@ -418,9 +418,6 @@ static void entry_free (ph2_t* tree, ph2_dual_node_t* dual)
 	}
 }
 
-/*
- * set default tree values
- */
 int ph2_initialize (
 	ph2_t* tree,
 	void* (*element_create) (void* input),
