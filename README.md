@@ -50,13 +50,13 @@ The phtree source files are in the `source` folder.
 
 You can have any combination of dimensionalities of the same bit width in your project, they wil not conflict with eachother.  Howerver, you can not have trees with different bit width of the same dimensions at the same time, as they use the same type names.  If you want to use different bit width trees of the same dimensionality see [Advanced Usage](#advanced-usage) below.
 
-[demo_1d](https://github.com/DDexxeDD/phtree-c/tree/blob/main/examples/demo_1d.c) is an example of a simple binary tree.
+[demo_1d](https://github.com/DDexxeDD/phtree-c/blob/main/examples/demo_1d.c) is an example of a simple binary tree.
 
-[demo_2d_simple](https://github.com/DDexxeDD/phtree-c/tree/blob/main/examples/demo_2d_simple.c) is an example of indexing 2d points.
+[demo_2d_simple](https://github.com/DDexxeDD/phtree-c/blob/main/examples/demo_2d_simple.c) is an example of indexing 2d points.
 
-[demo_2d_spatial_hash](https://github.com/DDexxeDD/phtree-c/tree/blob/main/examples/demo_2d_spatial_hash.c) is an example of indexing 2d points in a spatial hash.  Points in the tree are buckets of size 32x32 which points are stored in.
+[demo_2d_spatial_hash](https://github.com/DDexxeDD/phtree-c/blob/main/examples/demo_2d_spatial_hash.c) is an example of indexing 2d points in a spatial hash.  Points in the tree are buckets of size 32x32 which points are stored in.
 
-[demo_3d6d](https://github.com/DDexxeDD/phtree-c/tree/blob/main/examples/demo_2d_spatial_hash.c) is an example of indexing both 3d points and 3d boxes.  This is a demonstration of using trees of higher dimensions to store boxes in lower dimensions.
+[demo_3d6d](https://github.com/DDexxeDD/phtree-c/blob/main/examples/demo_2d_spatial_hash.c) is an example of indexing both 3d points and 3d boxes.  This is a demonstration of using trees of higher dimensions to store boxes in lower dimensions.
 
 
 ### Define an element to be stored in the tree.
@@ -76,7 +76,7 @@ The tree will use user defined functions to allocate and deallocate these elemen
 
 This function will need to allocate and initialize an element.  It should return a pointer to the allocated element.
 
-When inserting something in to the tree which creates a new element, input will be whatever you passed in to the insert function.  See the [2d spatial hash demo](https://github.com/DDexxeDD/phtree-c/tree/blob/main/examples/demo_2d_spatial_hash.c) for an example of this being used.  If initializing your element requires more data than the initial object you are creating it for has, you will need to use the pointer returned by the insert function to finish initialization.
+When inserting something in to the tree which creates a new element, input will be whatever you passed in to the insert function.  See the [2d spatial hash demo](https://github.com/DDexxeDD/phtree-c/blob/main/examples/demo_2d_spatial_hash.c) for an example of this being used.  If initializing your element requires more data than the initial object you are creating it for has, you will need to use the pointer returned by the insert function to finish initialization.
 
 ### Define a function to deallocate an element
 
@@ -103,7 +103,7 @@ This function needs to convert whatever your indexes are based on, into a point 
 
 See [Indexing Axis Aligned Boxes](#indexing-axis-aligned-boxes) for an explanation of using phtrees for boxes.
 
-If you are using a tree with an even number of dimensions to represent boxes of lower dimensions, and you want to query those boxes, you will need this function.  See [demo_3d6d](https://github.com/DDexxeDD/phtree-c/tree/blob/main/examples/demo_2d_spatial_hash.c) for a demonstration of this.
+If you are using a tree with an even number of dimensions to represent boxes of lower dimensions, and you want to query those boxes, you will need this function.  See [demo_3d6d](https://github.com/DDexxeDD/phtree-c/blob/main/examples/demo_2d_spatial_hash.c) for a demonstration of this.
 
 ### Define iteration functions for iterating or querying the tree
 
