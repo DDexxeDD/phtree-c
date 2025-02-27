@@ -1,8 +1,0 @@
-{
-	"prefix" : "ph3",
-	"dimensions" : "3",
-	"bit_width" : "64",
-	"1d" : true,
-	"2d" : true,
-	"3d" : true
-}

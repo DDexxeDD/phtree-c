@@ -1,0 +1,11 @@
+{
+	"prefix" : "ph2",
+	"bit_width" : 64,
+	"dimensions" : 2,
+	"float" : "double",
+	"max_children" : 8,
+	"child_padding" : 4,
+	"even" : true,
+	"1d" : true,
+	"2d" : true
+}

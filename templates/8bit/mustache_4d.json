@@ -1,0 +1,11 @@
+{
+	"prefix" : "ph4",
+	"bit_width" : 8,
+	"dimensions" : 4,
+	"max_children" : 16,
+	"even" : true,
+	"1d" : true,
+	"2d" : true,
+	"3d" : true,
+	"4d" : true
+}

@@ -1,0 +1,10 @@
+{
+	"prefix" : "ph3",
+	"bit_width" : 16,
+	"dimensions" : 3,
+	"max_children" : 8,
+	"even" : false,
+	"1d" : true,
+	"2d" : true,
+	"3d" : true
+}

@@ -1,0 +1,13 @@
+{
+	"prefix" : "ph6",
+	"bit_width" : 16,
+	"dimensions" : 6,
+	"max_children" : 64,
+	"even" : true,
+	"1d" : true,
+	"2d" : true,
+	"3d" : true,
+	"4d" : true,
+	"5d" : true,
+	"6d" : true
+}

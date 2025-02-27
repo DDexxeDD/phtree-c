@@ -1,7 +1,0 @@
-{
-	"prefix" : "ph2",
-	"dimensions" : "2",
-	"bit_width" : "64",
-	"1d" : true,
-	"2d" : true
-}

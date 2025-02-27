@@ -1,0 +1,9 @@
+{
+	"prefix" : "ph1",
+	"bit_width" : 16,
+	"dimensions" : 1,
+	"max_children" : 8,
+	"child_padding" : 6,
+	"even" : false,
+	"1d" : true
+}
