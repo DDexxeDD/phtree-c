@@ -59,7 +59,7 @@ You can have any combination of dimensionalities of the same bit width in your p
 
 [demo_3d6d](https://github.com/DDexxeDD/phtree-c/blob/main/examples/demo_2d_spatial_hash.c) is an example of indexing both 3d points and 3d boxes.  This is a demonstration of using trees of higher dimensions to store boxes in lower dimensions.
 
-For this library to work you _must_ define a few things.
+### _Required definitions_
 1. The structure/element you want to store at each index
 2. A function for creating/allocating one of those elements
 3. A function for destroying/deallocating one of those elements
