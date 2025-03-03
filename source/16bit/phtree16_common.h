@@ -18,9 +18,13 @@ typedef uint16_t phtree_key_t;
 #define PHTREE_KEY_ONE UINT16_C(1)
 #define PHTREE_KEY_MAX UINT16_MAX
 
+// if you need to flip the sign bit of phtree_key_t in a conversion function
+#define PHTREE_SIGN_BIT (PHTREE_KEY_ONE << (PHTREE_BIT_WIDTH - 1))
+
 /*
  * generic key converters
  */
+// phtree_int16_to_key expects input to be a pointer to a 16 integer
 phtree_key_t phtree_int16_to_key (void* input);
 
 /*

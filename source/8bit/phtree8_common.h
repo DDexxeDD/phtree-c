@@ -18,9 +18,13 @@ typedef uint8_t phtree_key_t;
 #define PHTREE_KEY_ONE UINT8_C(1)
 #define PHTREE_KEY_MAX UINT8_MAX
 
+// if you need to flip the sign bit of phtree_key_t in a conversion function
+#define PHTREE_SIGN_BIT (PHTREE_KEY_ONE << (PHTREE_BIT_WIDTH - 1))
+
 /*
  * generic key converters
  */
+// phtree_int8_to_key expects input to be a pointer to a 8 integer
 phtree_key_t phtree_int8_to_key (void* input);
 
 /*

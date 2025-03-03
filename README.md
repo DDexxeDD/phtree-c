@@ -8,18 +8,14 @@ The dimensionality of the phtrees here are hardcoded.  This library supports 1-6
 
 This library is designed to be fairly generic, which means there are a lot of void pointers being passed around.  Pay attention to what you are passing in to phtree functions and how you cast what you get out.
 
-For this library to work you _must_ define a few things.
-1. The structure/element you want to store at each index
-2. A function for creating/allocating one of those elements
-3. A function for destroying/deallocating one of those elements
-4. A function for converting a user defined value to a `phtree_key_t`, generic converters for ints, floats, and doubles are provided
-5. A function for converting a user defined type to a `phtree_point_t`
-6. Function(s) for what to do when querying or iterating the tree.
-
-***Check the [examples](https://github.com/DDexxeDD/phtree-c/tree/main/examples) for demonstsrations of all of this.***
-
 If you are interested in a simple implementation as reference for understanding or implementing your own phtree, check out the '[reference](https://github.com/DDexxeDD/phtree-c/releases/tag/reference)' tag.
 
+[Simple Usage](#simple-usage)
+[Advanced Usage](#advanced-usage)
+[Indexing Axis Aligned Boxes](#indexing-axis-aligned-boxes)
+[Queries](#queries)
+[Building Examples](#building-the-examples)
+[License](#license)
 
 ## Reporting Bugs/Contributing/Contact
 
@@ -34,7 +30,7 @@ There is also a [PH-Tree Discord](https://discord.gg/YmJTWYHPCA) server if you a
 
 Why templates and a bunch of bit/dimensionality specific files?  Because supporting arbitrary bit widths and dimensionality in a single data structure would require much more complexity and overhead.  You probably know what you need/want for your project, all of that complexity and overhead isn't going to help you any, its just going to slow you down.  So the complexity is rolled into the templates and you get a tighter, more efficient, more hackable tree for your project.
 
-Please note that while internal tree data types are publicly defined, you **should not** be directly touching anything inside of them, unless you are changing the functionality of the tree.  They are public because this is C and if you want to shoot yourself in the foot, go for it, its your life :D
+Please note that while internal tree data types are publicly defined, you **should not** be directly touching anything inside of them, unless you are changing the functionality of the tree.  They are public so that you do not always have to heap allocate things and because this is C and if you want to shoot yourself in the foot, go for it, its your life :D
 
 Best practice for using this library is probably to wrap most/all of the tree functionality with your own functions, the demos do this with most functions... pay attention to the demos.
 
@@ -48,7 +44,7 @@ The phtree source files are in the `source` folder.
 3. Add the chosen .h and .c to your project.
 4. Add the `phtreeXX_common.h` and `phtreeXX_common.c` to your project, where XX is your chosen bit width.
 
-You can have any combination of dimensionalities of the same bit width in your project, they wil not conflict with eachother.  Howerver, you can not have trees with different bit width of the same dimensions at the same time, as they use the same type names.  If you want to use different bit width trees of the same dimensionality see [Advanced Usage](#advanced-usage) below.
+You can have any combination of dimensionalities of the same bit width in your project, they will not conflict with eachother.  Howerver, you can not have trees with different bit width of the same dimensions at the same time, as they use the same type names.  If you want to use different bit width trees of the same dimensionality see [Advanced Usage](#advanced-usage) below.
 
 [demo_1d](https://github.com/DDexxeDD/phtree-c/blob/main/examples/demo_1d.c) is an example of a simple binary tree.
 
@@ -57,6 +53,14 @@ You can have any combination of dimensionalities of the same bit width in your p
 [demo_2d_spatial_hash](https://github.com/DDexxeDD/phtree-c/blob/main/examples/demo_2d_spatial_hash.c) is an example of indexing 2d points in a spatial hash.  Points in the tree are buckets of size 32x32 which points are stored in.
 
 [demo_3d6d](https://github.com/DDexxeDD/phtree-c/blob/main/examples/demo_2d_spatial_hash.c) is an example of indexing both 3d points and 3d boxes.  This is a demonstration of using trees of higher dimensions to store boxes in lower dimensions.
+
+For this library to work you _must_ define a few things.
+1. The structure/element you want to store at each index
+2. A function for creating/allocating one of those elements
+3. A function for destroying/deallocating one of those elements
+4. A function for converting a user defined value to a `phtree_key_t`, generic converters for ints, floats, and doubles are provided
+5. A function for converting a user defined type to a `phtree_point_t`
+6. Function(s) for what to do when querying or iterating the tree.
 
 
 ### Define an element to be stored in the tree.

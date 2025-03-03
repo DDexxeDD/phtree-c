@@ -18,10 +18,15 @@ typedef uint32_t phtree_key_t;
 #define PHTREE_KEY_ONE UINT32_C(1)
 #define PHTREE_KEY_MAX UINT32_MAX
 
+// if you need to flip the sign bit of phtree_key_t in a conversion function
+#define PHTREE_SIGN_BIT (PHTREE_KEY_ONE << (PHTREE_BIT_WIDTH - 1))
+
 /*
  * generic key converters
  */
+// phtree_int32_to_key expects input to be a pointer to a 32 integer
 phtree_key_t phtree_int32_to_key (void* input);
+// phtree_float_to_key expects input to be a pointer to a float
 phtree_key_t phtree_float_to_key (void* input);
 
 /*
