@@ -57,6 +57,8 @@ You can have any combination of dimensionalities of the same bit width in your p
 
 [demo_2d_spatial_hash](https://github.com/DDexxeDD/phtree-c/blob/main/examples/demo_2d_spatial_hash.c) is an example of indexing 2d points in a spatial hash.  Points in the tree are buckets of size 32x32 which points are stored in.
 
+[Another spatial hash demo](https://github.com/DDexxeDD/phtree-c-demo) with graphics.
+
 [demo_3d6d](https://github.com/DDexxeDD/phtree-c/blob/main/examples/demo_2d_spatial_hash.c) is an example of indexing both 3d points and 3d boxes.  This is a demonstration of using trees of higher dimensions to store boxes in lower dimensions.
 
 ### _Required definitions_
