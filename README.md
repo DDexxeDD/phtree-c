@@ -11,10 +11,15 @@ This library is designed to be fairly generic, which means there are a lot of vo
 If you are interested in a simple implementation as reference for understanding or implementing your own phtree, check out the '[reference](https://github.com/DDexxeDD/phtree-c/releases/tag/reference)' tag.
 
 [Simple Usage](#simple-usage)
+
 [Advanced Usage](#advanced-usage)
+
 [Indexing Axis Aligned Boxes](#indexing-axis-aligned-boxes)
+
 [Queries](#queries)
+
 [Building Examples](#building-the-examples)
+
 [License](#license)
 
 ## Reporting Bugs/Contributing/Contact
