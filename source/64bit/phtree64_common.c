@@ -26,7 +26,7 @@ phtree_key_t phtree_int64_to_key (void* input)
 	phtree_key_t b = 0;
 
 	memcpy (&b, input, sizeof (phtree_key_t));
-	b ^= (PHTREE_KEY_ONE << (PHTREE_BIT_WIDTH - 1));  // flip sign bit
+	b ^= PHTREE_SIGN_BIT;  // flip sign bit
 
 	return b;
 }

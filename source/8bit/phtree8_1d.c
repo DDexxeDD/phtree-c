@@ -18,8 +18,8 @@
 // keys will still be 8 bits in size but the tree will only have a depth of PHTREE_DEPTH
 #define PHTREE_DEPTH 8
 
-#define phtree_node_is_leaf(dual) ((dual)->node.postfix_length == 0)
-#define phtree_node_is_root(dual) ((dual)->node.postfix_length == (PHTREE_DEPTH - 1))
+#define phtree_node_is_leaf(node) ((node)->postfix_length == 0)
+#define phtree_node_is_root(node) ((node)->postfix_length == (PHTREE_DEPTH - 1))
 
 #define DIMENSIONS 1
 #define PHTREE_CHILD_FLAG UINT8_C(1)
@@ -47,8 +47,8 @@
 // 			popcount (00000011) = 2
 // subtracting 1 from popcount gives the index in the child array
 // 	of the child we are looking for
-#define child_index(dual,address) (popcount ((dual)->node.active_children >> (CHILD_SHIFT - (address))) - 1)
-#define child_active(dual,address) ((dual)->node.active_children & (PHTREE_CHILD_FLAG << (CHILD_SHIFT - (address))))
+#define child_index(node,address) (popcount ((node)->active_children >> (CHILD_SHIFT - (address))) - 1)
+#define child_active(node,address) ((node)->active_children & (PHTREE_CHILD_FLAG << (CHILD_SHIFT - (address))))
 
 typedef unsigned int hypercube_address_t;
 
@@ -152,23 +152,23 @@ static bool prefix_less_equal (ph1_point_t* point_a, ph1_point_t* point_b, int p
 }
 
 
-static bool node_in_window (ph1_dual_node_t* dual, ph1_query_t* window)
+static bool prefix_in_window (ph1_node_t* node, ph1_query_t* window)
 {
-	return (prefix_greater_equal (&dual->node.point, &window->min, dual->node.postfix_length) && prefix_less_equal (&dual->node.point, &window->max, dual->node.postfix_length));
+	return (prefix_greater_equal (&node->point, &window->min, node->postfix_length) && prefix_less_equal (&node->point, &window->max, node->postfix_length));
 }
 
-static bool entry_in_window (ph1_dual_node_t* dual, ph1_query_t* window)
+static bool point_in_window (ph1_node_t* node, ph1_query_t* window)
 {
-	return (point_greater_equal (&dual->entry.point, &window->min) && point_less_equal (&dual->entry.point, &window->max));
+	return (point_greater_equal (&node->point, &window->min) && point_less_equal (&node->point, &window->max));
 }
 
 /*
  * calculate the hypercube address of the point at the given node
  */
-static hypercube_address_t calculate_hypercube_address (ph1_point_t* point, ph1_dual_node_t* dual)
+static hypercube_address_t calculate_hypercube_address (ph1_point_t* point, ph1_node_t* node)
 {
 	// which bit in the point->values we are interested in
-	phtree_key_t bit_mask = PHTREE_KEY_ONE << dual->node.postfix_length;
+	phtree_key_t bit_mask = PHTREE_KEY_ONE << node->postfix_length;
 	hypercube_address_t address = 0;
 
 	// for each dimension
@@ -183,81 +183,82 @@ static hypercube_address_t calculate_hypercube_address (ph1_point_t* point, ph1_
 		// then move that value to the bottom of the bits
 		// add that value to the address
 		// 	which we have already shifted to make room
-		address |= (bit_mask & point->values[dimension]) >> dual->node.postfix_length;
+		address |= (bit_mask & point->values[dimension]) >> node->postfix_length;
 	}
 
 	return address;
 }
 
-static void* add_child (ph1_dual_node_t* dual, hypercube_address_t address)
+static void* add_child (ph1_node_t* node, hypercube_address_t address)
 {
-	if (dual->node.child_count >= dual->node.child_capacity)
+	if (node->child_count >= node->child_capacity)
 	{
 		// add 4 slots
 		// 	no performance testing/tuning was done on this, just adding 4
 		// 		might be better to add some other number
-		dual->node.children = phtree_realloc (dual->node.children, (dual->node.child_capacity * sizeof (ph1_node_t)) + (sizeof (ph1_node_t) * 4));
-		dual->node.child_capacity += 4;
+		node->children = phtree_realloc (node->children, (node->child_capacity * sizeof (ph1_node_t)) + (sizeof (ph1_node_t) * 4));
+		node->child_capacity += 4;
 	}
 
 	// need to set active_children before getting child index
 	// 	so we get the correct index
-	dual->node.active_children |= (PHTREE_CHILD_FLAG << (CHILD_SHIFT - address));
+	node->active_children |= (PHTREE_CHILD_FLAG << (CHILD_SHIFT - address));
 
-	int index = child_index (dual, address);
+	int index = child_index (node, address);
 	// move the children which need to be to the right of the child we are adding
-	memmove (dual->node.children + index + 1, dual->node.children + index, sizeof (ph1_node_t) * (dual->node.child_count - index));
+	memmove (node->children + index + 1, node->children + index, sizeof (ph1_node_t) * (node->child_count - index));
 	// zero the child we are adding
-	memset (dual->node.children + index, 0, sizeof (ph1_node_t));
+	memset (node->children + index, 0, sizeof (ph1_node_t));
 
-	dual->node.child_count++;
+	node->child_count++;
 
-	return dual->node.children + index;
+	return node->children + index;
 }
 
 /*
- * insert a ph1_entry_t in a node
+ * insert a entry in a node
+ * 	entries are nodes whose child pointer points to a user element
  */
-static void node_add_entry (ph1_dual_node_t* dual, ph1_point_t* point)
+static void node_add_entry (ph1_node_t* node, ph1_point_t* point)
 {
-	hypercube_address_t address = calculate_hypercube_address (point, dual);
+	hypercube_address_t address = calculate_hypercube_address (point, node);
 
 	// if there is already an entry at address
-	// 	just return
-	// 	the entry we would add to will eventually be returned by ph1_insert
-	if (child_active (dual, address))
+	// 	return
+	// the entry we would add to will eventually be returned by ph1_insert
+	if (child_active (node, address))
 	{
 		return;
 	}
 
 	// if there is _not_ an entry at address
 	// 	create a new entry
-	ph1_entry_t* new_entry = add_child (dual, address);
+	ph1_node_t* new_entry = add_child (node, address);
 
 	new_entry->point = *point;
-	new_entry->element = NULL;
+	new_entry->children = NULL;
 }
 
-static void node_initialize (ph1_dual_node_t* dual, uint16_t infix_length, uint16_t postfix_length, ph1_point_t* point)
+static void node_initialize (ph1_node_t* node, uint16_t infix_length, uint16_t postfix_length, ph1_point_t* point)
 {
-	dual->node.children = phtree_calloc (4, sizeof (ph1_node_t));
-	dual->node.child_capacity = 4;
-	dual->node.child_count = 0;
-	dual->node.active_children = 0;
-	dual->node.infix_length = infix_length;
-	dual->node.postfix_length = postfix_length;
-	dual->node.point = *point;
+	node->children = phtree_calloc (4, sizeof (ph1_node_t));
+	node->child_capacity = 4;
+	node->child_count = 0;
+	node->active_children = 0;
+	node->infix_length = infix_length;
+	node->postfix_length = postfix_length;
+	node->point = *point;
 
 	phtree_key_t key_mask = PHTREE_KEY_MAX << (postfix_length + 1);
 
 	for (int dimension = 0; dimension < DIMENSIONS; dimension++)
 	{
 		// set the new node's postfix bits to 0
-		dual->node.point.values[dimension] &= key_mask;
+		node->point.values[dimension] &= key_mask;
 		// set the bits at node to 1
-		// 	this makes the dual->node.point the center of the node
+		// 	this makes the node->point the center of the node
 		// 	which is useful later in window queries
-		dual->node.point.values[dimension] |= PHTREE_KEY_ONE << postfix_length;
+		node->point.values[dimension] |= PHTREE_KEY_ONE << postfix_length;
 	}
 }
 
@@ -266,20 +267,20 @@ static void node_initialize (ph1_dual_node_t* dual, uint16_t infix_length, uint1
  * 	if the node already has a child at the address
  * 		return that existing node and set success to false
  */
-static ph1_dual_node_t* node_try_add (bool* added_new_node, ph1_dual_node_t* dual, hypercube_address_t address, ph1_point_t* point)
+static ph1_node_t* node_try_add (bool* added_new_node, ph1_node_t* node, hypercube_address_t address, ph1_point_t* point)
 {
-	ph1_dual_node_t* node_out = NULL;
+	ph1_node_t* node_out = NULL;
 
 	// if the child is empty
 	// 	create a new child
-	if (!child_active (dual, address))
+	if (!child_active (node, address))
 	{
 		// if we are creating an entirely new child node
 		// 	because this is a patricia trie
 		// 		the child is going to be all the way at the bottom of the tree
 		// 			postfix = 0  // there will only be entries below this node, no other nodes
-		node_out = add_child (dual, address);
-		node_initialize (node_out, dual->node.postfix_length - 1, 0, point);
+		node_out = add_child (node, address);
+		node_initialize (node_out, node->postfix_length - 1, 0, point);
 		node_add_entry (node_out, point);
 
 		*added_new_node = true;
@@ -288,7 +289,7 @@ static ph1_dual_node_t* node_try_add (bool* added_new_node, ph1_dual_node_t* dua
 	// 	return the child
 	else
 	{
-		node_out = dual->node.children + child_index (dual, address);
+		node_out = node->children + child_index (node, address);
 		*added_new_node = false;
 	}
 
@@ -316,7 +317,7 @@ static int number_of_diverging_bits (ph1_point_t* point_a, ph1_point_t* point_b)
 /*
  * insert a new node between existing nodes
  */
-static ph1_dual_node_t* node_insert_split (ph1_dual_node_t* parent, ph1_dual_node_t* child, ph1_point_t* point, int max_conflicting_bits)
+static ph1_node_t* node_insert_split (ph1_node_t* parent, ph1_node_t* child, ph1_point_t* point, int max_conflicting_bits)
 {
 	/*
 	 * because child is already in the corrent array position we would want to put a new split node
@@ -327,20 +328,20 @@ static ph1_dual_node_t* node_insert_split (ph1_dual_node_t* parent, ph1_dual_nod
 	 */
 
 	// store the values of the current child
-	ph1_dual_node_t old_child = *child;
+	ph1_node_t old_child = *child;
 	// clear and reset child
-	node_initialize (child, parent->node.postfix_length - max_conflicting_bits, max_conflicting_bits - 1, point);
+	node_initialize (child, parent->postfix_length - max_conflicting_bits, max_conflicting_bits - 1, point);
 	// add a new child to child
 	// 	which is going to be where the old_child goes
-	ph1_dual_node_t* new_child = add_child (child, calculate_hypercube_address (&old_child.node.point, child));
+	ph1_node_t* new_child = add_child (child, calculate_hypercube_address (&old_child.point, child));
 	// copy the values from old_child into the new_child
 	*new_child = old_child;
 
-	new_child->node.infix_length = (child->node.postfix_length - new_child->node.postfix_length) - 1;
+	new_child->infix_length = (child->postfix_length - new_child->postfix_length) - 1;
 
 	// add the new child that we created the split for
 	new_child = add_child (child, calculate_hypercube_address (point, child));
-	node_initialize (new_child, child->node.postfix_length - 1, 0, point);
+	node_initialize (new_child, child->postfix_length - 1, 0, point);
 	node_add_entry (new_child, point);
 
 	return new_child;
@@ -349,14 +350,14 @@ static ph1_dual_node_t* node_insert_split (ph1_dual_node_t* parent, ph1_dual_nod
 /*
  * figure out what to do when trying to add a new node where a node already exists
  */
-static ph1_dual_node_t* node_handle_collision (ph1_dual_node_t* dual, ph1_dual_node_t* sub_node, ph1_point_t* point)
+static ph1_node_t* node_handle_collision (ph1_node_t* node, ph1_node_t* sub_node, ph1_point_t* point)
 {
 	// if infix_length == 0
-	// 	we can not insert a node between dual and sub_node
+	// 	we can not insert a node between node and sub_node
 	// 	point will be a child of sub_node
-	if (sub_node->node.infix_length > 0)
+	if (sub_node->infix_length > 0)
 	{
-		int max_conflicting_bits = number_of_diverging_bits (point, &sub_node->node.point);
+		int max_conflicting_bits = number_of_diverging_bits (point, &sub_node->point);
 
 		/*
 		 * max_conflicting_bits == sub_node->node.postfix_length
@@ -366,11 +367,11 @@ static ph1_dual_node_t* node_handle_collision (ph1_dual_node_t* dual, ph1_dual_n
 		 * 	means we would be inserting the same sub_node that already exists
 		 *
 		 * max_conflicting_bits > sub_node->node.postfix_length + 1
-		 * 	we need to insert a node between dual and sub_node
+		 * 	we need to insert a node between node and sub_node
 		 */
-		if (max_conflicting_bits > sub_node->node.postfix_length + 1)
+		if (max_conflicting_bits > sub_node->postfix_length + 1)
 		{
-			return node_insert_split (dual, sub_node, point, max_conflicting_bits);
+			return node_insert_split (node, sub_node, point, max_conflicting_bits);
 		}
 	}
 
@@ -385,14 +386,14 @@ static ph1_dual_node_t* node_handle_collision (ph1_dual_node_t* dual, ph1_dual_n
 /*
  * add a new node to the tree
  */
-static ph1_dual_node_t* node_add (ph1_dual_node_t* node, ph1_point_t* point)
+static ph1_node_t* node_add (ph1_node_t* node, ph1_point_t* point)
 {
 	hypercube_address_t address = calculate_hypercube_address (point, node);
 	// because node_try_add will always return a node
 	// 	we need to keep track of if node_try_add created the node
 	// 		or if the node was already there
 	bool added_new_node = false;
-	ph1_dual_node_t* sub_node = node_try_add (&added_new_node, node, address, point);
+	ph1_node_t* sub_node = node_try_add (&added_new_node, node, address, point);
 
 	// if there was not already a node at the point
 	// 	we created one and can return it now
@@ -405,16 +406,16 @@ static ph1_dual_node_t* node_add (ph1_dual_node_t* node, ph1_point_t* point)
 	return node_handle_collision (node, sub_node, point);
 }
 
-static void entry_free (ph1_t* tree, ph1_dual_node_t* dual)
+static void entry_free (ph1_t* tree, ph1_node_t* node)
 {
-	if (dual->entry.element)
+	if (node->children)
 	{
 		if (tree->element_destroy)
 		{
-			tree->element_destroy (dual->entry.element);
+			tree->element_destroy (node->children);
 		}
 
-		dual->entry.element = NULL;
+		node->children = NULL;
 	}
 }
 
@@ -465,25 +466,25 @@ ph1_t* ph1_create (
  * recursively free _ALL_ of the nodes under and including the argument node
  * !! do not call this on root !!
  */
-static void free_nodes (ph1_t* tree, ph1_dual_node_t* dual)
+static void free_nodes (ph1_t* tree, ph1_node_t* node)
 {
 	// this will free nodes recursively
 	// 	worst case our stack is PHTREE_DEPTH deep
-	void (*free_function) (ph1_t* tree, ph1_dual_node_t* node) = free_nodes;
+	void (*free_function) (ph1_t* tree, ph1_node_t* node) = free_nodes;
 
-	if (phtree_node_is_leaf (dual))
+	if (phtree_node_is_leaf (node))
 	{
 		// if the node is a leaf we dont need to recurse any further
 		// 	just free entries
 		free_function = entry_free;
 	}
 
-	for (int iter = 0; iter < dual->node.child_count; iter++)
+	for (int iter = 0; iter < node->child_count; iter++)
 	{
-		free_function (tree, &dual->node.children[iter]);
+		free_function (tree, &node->children[iter]);
 	}
 
-	phtree_free (dual->node.children);
+	phtree_free (node->children);
 }
 
 /*
@@ -496,16 +497,16 @@ void ph1_clear (ph1_t* tree)
 		return;
 	}
 
-	for (int iter = 0; iter < tree->root.node.child_count; iter++)
+	for (int iter = 0; iter < tree->root.child_count; iter++)
 	{
-		free_nodes (tree, &tree->root.node.children[iter]);
+		free_nodes (tree, &tree->root.children[iter]);
 	}
 
-	tree->root.node.active_children = 0;
-	tree->root.node.child_count = 0;
-	tree->root.node.child_capacity = 0;
+	tree->root.active_children = 0;
+	tree->root.child_count = 0;
+	tree->root.child_capacity = 0;
 
-	phtree_free (tree->root.node.children);
+	phtree_free (tree->root.children);
 }
 
 /*
@@ -521,24 +522,24 @@ void ph1_free (ph1_t* tree)
  * internal for_each function
  * 	does not have safety check for tree, function, or node existence
  */
-static void for_each (ph1_t* tree, ph1_dual_node_t* dual, void (*function) (void* element, void* data), void* data)
+static void for_each (ph1_t* tree, ph1_node_t* node, void (*function) (void* element, void* data), void* data)
 {
-	if (phtree_node_is_leaf (dual))
+	if (phtree_node_is_leaf (node))
 	{
-		for (int iter = 0; iter < dual->node.child_count; iter++)
+		for (int iter = 0; iter < node->child_count; iter++)
 		{
-			ph1_entry_t* entry = (ph1_entry_t*) &dual->node.children[iter];
-			function (entry->element, data);
+			ph1_node_t* entry = &node->children[iter];
+			function (entry->children, data);
 		}
 
 		return;
 	}
 
-	for (int iter = 0; iter < dual->node.child_count; iter++)
+	for (int iter = 0; iter < node->child_count; iter++)
 	{
 		// do this recursively
 		// worst case our stack is 32 deep
-		for_each (tree, &dual->node.children[iter], function, data);
+		for_each (tree, &node->children[iter], function, data);
 	}
 }
 
@@ -554,9 +555,9 @@ void ph1_for_each (ph1_t* tree, phtree_iteration_function_t function, void* data
 		return;
 	}
 
-	for (int iter = 0; iter < tree->root.node.child_count; iter++)
+	for (int iter = 0; iter < tree->root.child_count; iter++)
 	{
-		for_each (tree, &tree->root.node.children[iter], function, data);
+		for_each (tree, &tree->root.children[iter], function, data);
 	}
 }
 
@@ -564,54 +565,54 @@ void* ph1_insert (ph1_t* tree, void* index)
 {
 	ph1_point_t point;
 	tree->convert_to_point (tree, &point, index);
-	ph1_dual_node_t* current_dual = &tree->root;
+	ph1_node_t* current_node = &tree->root;
 
-	while (!phtree_node_is_leaf (current_dual))
+	while (!phtree_node_is_leaf (current_node))
 	{
-		current_dual = node_add (current_dual, &point);
+		current_node = node_add (current_node, &point);
 	}
 
-	int offset = child_index (current_dual, calculate_hypercube_address (&point, current_dual));
-	ph1_entry_t* entry = (ph1_entry_t*) (current_dual->node.children + offset);
+	int offset = child_index (current_node, calculate_hypercube_address (&point, current_node));
+	ph1_node_t* entry = current_node->children + offset;
 
-	if (!entry->element)
+	if (!entry->children)
 	{
-		entry->element = tree->element_create (index);
+		entry->children = tree->element_create (index);
 	}
 
-	return entry->element;
+	return entry->children;
 }
 
 /*
  * find an entry in the tree
  */
-ph1_entry_t* ph1_find_entry (ph1_t* tree, ph1_point_t* point)
+ph1_node_t* ph1_find_entry (ph1_t* tree, ph1_point_t* point)
 {
-	ph1_dual_node_t* current_dual = &tree->root.node.children[child_index (&tree->root, calculate_hypercube_address (point, &tree->root))];
+	ph1_node_t* current_node = &tree->root.children[child_index (&tree->root, calculate_hypercube_address (point, &tree->root))];
 	hypercube_address_t address;
 
-	while (!phtree_node_is_leaf (current_dual))
+	while (!phtree_node_is_leaf (current_node))
 	{
-		address = calculate_hypercube_address (point, current_dual);
+		address = calculate_hypercube_address (point, current_node);
 
-		if (!child_active (current_dual, address)
-			|| !prefix_equal (point, &current_dual->node.point, current_dual->node.postfix_length))
+		if (!child_active (current_node, address)
+			|| !prefix_equal (point, &current_node->point, current_node->postfix_length))
 		{
 			return NULL;
 		}
 
-		current_dual = &current_dual->node.children[child_index (current_dual, address)];
+		current_node = &current_node->children[child_index (current_node, address)];
 	}
 
-	address = calculate_hypercube_address (point, current_dual);
+	address = calculate_hypercube_address (point, current_node);
 
-	if (!child_active (current_dual, address)
-		|| !point_equal (point, &current_dual->node.point))
+	if (!child_active (current_node, address)
+		|| !point_equal (point, &current_node->point))
 	{
 		return NULL;
 	}
 
-	return (ph1_entry_t*) &current_dual->node.children[child_index (current_dual, address)];
+	return &current_node->children[child_index (current_node, address)];
 }
 
 /*
@@ -622,48 +623,48 @@ void* ph1_find (ph1_t* tree, void* index)
 {
 	ph1_point_t point;
 	tree->convert_to_point (tree, &point, index);
-	ph1_entry_t* entry = ph1_find_entry (tree, &point);
+	ph1_node_t* entry = ph1_find_entry (tree, &point);
 
 	if (!entry)
 	{
 		return NULL;
 	}
 
-	return entry->element;
+	return entry->children;
 }
 
-void ph1_remove_child (ph1_dual_node_t* dual, hypercube_address_t address)
+void ph1_remove_child (ph1_node_t* node, hypercube_address_t address)
 {
-	int index = child_index (dual, address);
-	ph1_dual_node_t* child = &dual->node.children[index];
+	int index = child_index (node, address);
+	ph1_node_t* child = &node->children[index];
 
-	phtree_free (child->node.children);
+	phtree_free (child->children);
 
-	memmove (dual->node.children + index, dual->node.children + index + 1, sizeof (ph1_node_t) * (dual->node.child_count - index - 1));
+	memmove (node->children + index, node->children + index + 1, sizeof (ph1_node_t) * (node->child_count - index - 1));
 
-	dual->node.child_count--;
-	dual->node.active_children &= ~(PHTREE_CHILD_FLAG << (CHILD_SHIFT - address));
+	node->child_count--;
+	node->active_children &= ~(PHTREE_CHILD_FLAG << (CHILD_SHIFT - address));
 }
 
-void ph1_remove_entry (ph1_t* tree, ph1_dual_node_t* dual, hypercube_address_t address)
+void ph1_remove_entry (ph1_t* tree, ph1_node_t* node, hypercube_address_t address)
 {
-	int index = child_index (dual, address);
-	ph1_entry_t* entry = &dual->node.children[index].entry;
+	int index = child_index (node, address);
+	ph1_node_t* entry = &node->children[index];
 
-	if (entry->element)
+	if (entry->children)
 	{
 		if (tree->element_destroy)
 		{
-			tree->element_destroy (entry->element);
+			tree->element_destroy (entry->children);
 		}
 
-		entry->element = NULL;
+		entry->children = NULL;
 	}
 
-	memmove (dual->node.children + index, dual->node.children + index + 1, sizeof (ph1_dual_node_t) * (dual->node.child_count - index - 1));
+	memmove (node->children + index, node->children + index + 1, sizeof (ph1_node_t) * (node->child_count - index - 1));
 
-	dual->node.child_count--;
-	dual->node.active_children &= ~(PHTREE_CHILD_FLAG << (CHILD_SHIFT - address));
+	node->child_count--;
+	node->active_children &= ~(PHTREE_CHILD_FLAG << (CHILD_SHIFT - address));
 }
 
 void ph1_remove (ph1_t* tree, void* index)
@@ -671,8 +672,8 @@ void ph1_remove (ph1_t* tree, void* index)
 	ph1_point_t point;
 	tree->convert_to_point (tree, &point, index);
 	int stack_index = 0;
-	ph1_dual_node_t* node_stack[PHTREE_DEPTH] = {0};
-	ph1_dual_node_t* current_node = &tree->root;
+	ph1_node_t* node_stack[PHTREE_DEPTH] = {0};
+	ph1_node_t* current_node = &tree->root;
 	hypercube_address_t address;
 
 	while (!phtree_node_is_leaf (current_node))
@@ -683,7 +684,7 @@ void ph1_remove (ph1_t* tree, void* index)
 		{
 			node_stack[stack_index] = current_node;
 			stack_index++;
-			current_node = &current_node->node.children[child_index (current_node, address)];
+			current_node = &current_node->children[child_index (current_node, address)];
 		}
 		// if the point doesnt exist in the tree we dont need to remove it
 		else
@@ -694,13 +695,13 @@ void ph1_remove (ph1_t* tree, void* index)
 
 	ph1_remove_entry (tree, current_node, calculate_hypercube_address (&point, current_node));
 
-	if (current_node->node.child_count == 0)
+	if (current_node->child_count == 0)
 	{
 		// set stack_index to the last node in the stack
 		// 	the parent of current_node
 		stack_index--;
 
-		ph1_dual_node_t* parent = node_stack[stack_index];
+		ph1_node_t* parent = node_stack[stack_index];
 
 		ph1_remove_child (parent, calculate_hypercube_address (&point, parent));
 		stack_index--;
@@ -718,7 +719,7 @@ void ph1_remove (ph1_t* tree, void* index)
 			// 			and only had a single child
 			// 		such a node shouldnt exist
 			// 			it should have been removed before getting here
-			if (current_node->node.child_count > 1)
+			if (current_node->child_count > 1)
 			{
 				break;
 			}
@@ -726,10 +727,10 @@ void ph1_remove (ph1_t* tree, void* index)
 			int index = child_index (parent, calculate_hypercube_address (&point, parent));
 
 			// current_node->children[0] is the only child
-			parent->node.children[index] = current_node->node.children[0];
-			parent->node.children[index].node.infix_length = parent->node.postfix_length - parent->node.children[index].node.postfix_length - 1;
+			parent->children[index] = current_node->children[0];
+			parent->children[index].infix_length = parent->postfix_length - parent->children[index].postfix_length - 1;
 
-			phtree_free (current_node->node.children);
+			phtree_free (current_node->children);
 
 			stack_index--;
 		}
@@ -741,15 +742,15 @@ void ph1_remove (ph1_t* tree, void* index)
  */
 bool ph1_empty (ph1_t* tree)
 {
-	return (tree->root.node.child_count == 0);
+	return (tree->root.child_count == 0);
 }
 
 /*
  * run a window query on a specific node
  */
-static void node_query_window (ph1_dual_node_t* dual, ph1_query_t* query, void* data)
+static void node_query_window (ph1_node_t* node, ph1_query_t* query, void* data)
 {
-	if (!node_in_window (dual, query))
+	if (!prefix_in_window (node, query))
 	{
 		return;
 	}
@@ -770,28 +771,28 @@ static void node_query_window (ph1_dual_node_t* dual, ph1_query_t* query, void* 
 	{
 		/*
 		 * for these >= to work properly
-		 * 	dual->node.point has to be set to the mid point of the node
-		 * 	we set dual->node.point to the mid point, during node creation
+		 * 	node->point has to be set to the mid point of the node
+		 * 	we set node->point to the mid point, during node creation
 		 * 		so we dont have to calculate it here
 		 */
 		mask_lower <<= 1;
-		mask_lower |= query->min.values[dimension] >= dual->node.point.values[dimension];
+		mask_lower |= query->min.values[dimension] >= node->point.values[dimension];
 
 		mask_upper <<= 1;
-		mask_upper |= query->max.values[dimension] >= dual->node.point.values[dimension];
+		mask_upper |= query->max.values[dimension] >= node->point.values[dimension];
 	}
 
-	if (phtree_node_is_leaf (dual))
+	if (phtree_node_is_leaf (node))
 	{
 		for (int iter = 0; iter < NODE_CHILD_MAX; iter++)
 		{
-			if (child_active (dual, iter) && ((iter | mask_lower) & mask_upper) == iter)
+			if (child_active (node, iter) && ((iter | mask_lower) & mask_upper) == iter)
 			{
-				ph1_dual_node_t* child = &dual->node.children[child_index (dual, iter)];
+				ph1_node_t* child = &node->children[child_index (node, iter)];
 
-				if (entry_in_window (child, query))
+				if (point_in_window (child, query))
 				{
-					query->function (child->entry.element, data);
+					query->function (child->children, data);
 				}
 			}
 		}
@@ -803,9 +804,9 @@ static void node_query_window (ph1_dual_node_t* dual, ph1_query_t* query, void* 
 	// 	recurse through the node's children
 	for (unsigned int iter = 0; iter < NODE_CHILD_MAX; iter++)
 	{
-		if (child_active (dual, iter) && ((iter | mask_lower) & mask_upper) == iter)
+		if (child_active (node, iter) && ((iter | mask_lower) & mask_upper) == iter)
 		{
-			node_query_window (&dual->node.children[child_index (dual, iter)], query, data);
+			node_query_window (&node->children[child_index (node, iter)], query, data);
 		}
 	}
 }
@@ -820,9 +821,9 @@ void ph1_query (ph1_t* tree, ph1_query_t* query, void* data)
 		return;
 	}
 
-	for (int iter = 0; iter < tree->root.node.child_count; iter++)
+	for (int iter = 0; iter < tree->root.child_count; iter++)
 	{
-		node_query_window (&tree->root.node.children[iter], query, data);
+		node_query_window (&tree->root.children[iter], query, data);
 	}
 }
 

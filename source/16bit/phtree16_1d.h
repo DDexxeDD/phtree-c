@@ -14,7 +14,7 @@ typedef struct ph1_point_t
 	phtree_key_t values[1];
 } ph1_point_t;
 
-typedef union ph1_dual_node_t ph1_dual_node_t;
+typedef struct ph1_node_t ph1_node_t;
 typedef struct ph1_node_t
 {
 	/*
@@ -35,9 +35,11 @@ typedef struct ph1_node_t
 	ph1_point_t point;
 	/*
 	 * a child can be either a node or an element
+	 * 	we store everything as a node because most of the time we are working with nodes
+	 * 	only in a few spots do we work with entries
 	 * children is an ordered dynamic array
 	 */
-	ph1_dual_node_t* children;
+	ph1_node_t* children;
 	// bit flags for which children are active
 	uint8_t active_children;
 	// curent capacity of the children array
@@ -57,33 +59,13 @@ typedef struct ph1_node_t
 	int8_t postfix_length;
 } ph1_node_t;
 
-typedef struct
-{
-	ph1_point_t point;
-	void* element;
-} ph1_entry_t;
-
-/*
- * children of a node can be either nodes or elements
- * we use this union so that we're always allocating enough space for the larger
- * 	(nodes should always be larger but lets be safe for the future)
- *
- * we trade the ugliness of managing casts for the ugliness of specifying node or entry
- * hopefully this keeps it clear that we are dealing with ambiguous node objects
- */
-typedef union ph1_dual_node_t
-{
-	ph1_node_t node;
-	ph1_entry_t entry;
-} ph1_dual_node_t;
-
 /*
  * the tree type
  */
 typedef struct ph1_t ph1_t;
 typedef struct ph1_t
 {
-	ph1_dual_node_t root;
+	ph1_node_t root;
 
 	/*
 	 * user defined functions for handling user defined elements
