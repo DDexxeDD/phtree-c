@@ -146,7 +146,7 @@ ph3_t* ph3_create (
 	phtree_key_t (*convert_to_key) (void* input),
 	void (*convert_to_point) (ph3_t* tree, ph3_point_t* out, void* input));
 
-int ph3_initialize (
+void ph3_initialize (
 	ph3_t* tree,
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void*),
@@ -210,14 +210,10 @@ void ph3_query (ph3_t* tree, ph3_query_t* query, void* data);
 /*
  * allocate a query
  */
-ph3_query_t* ph3_query_create ();
+ph3_query_t* ph3_query_create (ph3_t* tree, void* min, void* max, phtree_iteration_function_t function);
 void ph3_query_free (ph3_query_t* query);
 void ph3_query_set (ph3_t* tree, ph3_query_t* query, void* min, void* max, phtree_iteration_function_t function);
 void ph3_query_clear (ph3_query_t* query);
-/*
- * if you need the center point of a window query
- */
-void ph3_query_center (ph3_query_t* query, ph3_point_t* out);
 
 /*
  * use this in your convert_to_point function

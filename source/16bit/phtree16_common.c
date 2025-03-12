@@ -180,17 +180,17 @@ uint64_t phtree_count_trailing_zeroes (uint64_t bit_string)
  * implementation on machines with fast multiplication.
  * It uses 12 arithmetic operations, one of which is a multiply.
  */
-uint64_t phtree_popcount (uint64_t x)
+uint64_t phtree_popcount (uint64_t bit_string)
 {
 	uint64_t m1 = 0x5555555555555555ull;  // binary: 0101...
 	uint64_t m2 = 0x3333333333333333ull;  // binary: 00110011...
 	uint64_t m4 = 0x0F0F0F0F0F0F0F0Full;  // binary: 00001111...
 	uint64_t h01 = 0x0101010101010101ull;  // the sum of 256 to the power of 0, 1, 2, 3, ...
 
-	x -= (x >> 1) & m1;  // put count of each 2 bits into those 2 bits
-	x = (x & m2) + ((x >> 2) & m2);  // put count of each 4 bits into those 4 bits
-	x = (x + (x >> 4)) & m4;  // put count of each 8 bits into those 8 bits
+	bit_string -= (bit_string >> 1) & m1;  // put count of each 2 bits into those 2 bits
+	bit_string = (bit_string & m2) + ((bit_string >> 2) & m2);  // put count of each 4 bits into those 4 bits
+	bit_string = (bit_string + (bit_string >> 4)) & m4;  // put count of each 8 bits into those 8 bits
 
-	// return left 8 bits of x + (x << 8) + (x << 16) + (x << 24) + ...
-	return (x * h01) >> 56;
+	// return left 8 bits of bit_string + (bit_string << 8) + (bit_string << 16) + (bit_string << 24) + ...
+	return (bit_string * h01) >> 56;
 }

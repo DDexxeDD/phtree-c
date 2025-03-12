@@ -170,7 +170,7 @@ typedef struct {{prefix}}_query_t
 	void (*convert_to_box_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input));
 {{/even}}
 
-int {{prefix}}_initialize (
+void {{prefix}}_initialize (
 	{{prefix}}_t* tree,
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void*),
@@ -240,7 +240,7 @@ void {{prefix}}_query ({{prefix}}_t* tree, {{prefix}}_query_t* query, void* data
 /*
  * allocate a query
  */
-{{prefix}}_query_t* {{prefix}}_query_create ();
+{{prefix}}_query_t* {{prefix}}_query_create ({{prefix}}_t* tree, void* min, void* max, phtree_iteration_function_t function);
 void {{prefix}}_query_free ({{prefix}}_query_t* query);
 void {{prefix}}_query_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, void* min, void* max, phtree_iteration_function_t function);
 {{#even}}
@@ -291,10 +291,6 @@ void {{prefix}}_query_box_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, bo
 void {{prefix}}_query_box_point_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, void* point, phtree_iteration_function_t function);
 {{/even}}
 void {{prefix}}_query_clear ({{prefix}}_query_t* query);
-/*
- * if you need the center point of a window query
- */
-void {{prefix}}_query_center ({{prefix}}_query_t* query, {{prefix}}_point_t* out);
 
 /*
  * use this in your convert_to_point function

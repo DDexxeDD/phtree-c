@@ -419,7 +419,7 @@ static void entry_free (ph2_t* tree, ph2_node_t* node)
 	}
 }
 
-int ph2_initialize (
+void ph2_initialize (
 	ph2_t* tree,
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void*),
@@ -435,8 +435,6 @@ int ph2_initialize (
 	tree->convert_to_key = convert_to_key;
 	tree->convert_to_point = convert_to_point;
 	tree->convert_to_box_point = convert_to_box_point;
-
-	return 0;
 }
 
 /*
@@ -919,7 +917,7 @@ void ph2_query_box_point_set (ph2_t* tree, ph2_query_t* query, void* point, phtr
 /*
  * create a new window query
  */
-ph2_query_t* ph2_query_create ()
+ph2_query_t* ph2_query_create (ph2_t* tree, void* min, void* max, phtree_iteration_function_t function)
 {
 	ph2_query_t* new_query = phtree_calloc (1, sizeof (*new_query));
 
@@ -927,6 +925,8 @@ ph2_query_t* ph2_query_create ()
 	{
 		return NULL;
 	}
+
+	ph2_query_set (tree, new_query, min, max);
 
 	return new_query;
 }
@@ -948,14 +948,6 @@ void ph2_query_clear (ph2_query_t* query)
 	}
 
 	query->function = NULL;
-}
-
-void ph2_query_center (ph2_query_t* query, ph2_point_t* out)
-{
-	for (int dimension = 0; dimension < DIMENSIONS; dimension++)
-	{
-		out->values[dimension] = (query->max.values[dimension] - query->min.values[dimension]) / 2;
-	}
 }
 
 /*

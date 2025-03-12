@@ -161,7 +161,7 @@ ph2_t* ph2_create (
 	void (*convert_to_point) (ph2_t* tree, ph2_point_t* out, void* input),
 	void (*convert_to_box_point) (ph2_t* tree, ph2_point_t* out, void* input));
 
-int ph2_initialize (
+void ph2_initialize (
 	ph2_t* tree,
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void*),
@@ -226,7 +226,7 @@ void ph2_query (ph2_t* tree, ph2_query_t* query, void* data);
 /*
  * allocate a query
  */
-ph2_query_t* ph2_query_create ();
+ph2_query_t* ph2_query_create (ph2_t* tree, void* min, void* max, phtree_iteration_function_t function);
 void ph2_query_free (ph2_query_t* query);
 void ph2_query_set (ph2_t* tree, ph2_query_t* query, void* min, void* max, phtree_iteration_function_t function);
 /*
@@ -275,10 +275,6 @@ void ph2_query_box_set (ph2_t* tree, ph2_query_t* query, bool intersect, void* m
  */
 void ph2_query_box_point_set (ph2_t* tree, ph2_query_t* query, void* point, phtree_iteration_function_t function);
 void ph2_query_clear (ph2_query_t* query);
-/*
- * if you need the center point of a window query
- */
-void ph2_query_center (ph2_query_t* query, ph2_point_t* out);
 
 /*
  * use this in your convert_to_point function

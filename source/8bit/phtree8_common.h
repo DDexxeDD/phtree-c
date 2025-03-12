@@ -47,15 +47,15 @@ typedef void (*phtree_iteration_function_t) (void* element, void* data);
 #define phtree_realloc realloc
 #endif
 
+uint64_t phtree_count_leading_zeroes (uint64_t bit_string);
+uint64_t phtree_count_trailing_zeroes (uint64_t bit_string);
+uint64_t phtree_popcount (uint64_t bit_string);
+
 #if defined (_MSC_VER)
 #include <intrin.h>
 uint64_t msvc_count_leading_zeoes (uint64_t bit_string);
 uint64_t msvc_count_trailing_zeroes (uint64_t bit_string);
 #endif
-
-uint64_t phtree_count_leading_zeroes (uint64_t bit_string);
-uint64_t phtree_count_trailing_zeroes (uint64_t bit_string);
-uint64_t phtree_popcount (uint64_t x);
 
 #if defined (__clang__) || defined (__GNUC__)
 #define count_leading_zeroes(bit_string) (0 ? 64U : __builtin_clzll (bit_string))

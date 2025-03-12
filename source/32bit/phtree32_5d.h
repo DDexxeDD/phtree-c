@@ -146,7 +146,7 @@ ph5_t* ph5_create (
 	phtree_key_t (*convert_to_key) (void* input),
 	void (*convert_to_point) (ph5_t* tree, ph5_point_t* out, void* input));
 
-int ph5_initialize (
+void ph5_initialize (
 	ph5_t* tree,
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void*),
@@ -210,14 +210,10 @@ void ph5_query (ph5_t* tree, ph5_query_t* query, void* data);
 /*
  * allocate a query
  */
-ph5_query_t* ph5_query_create ();
+ph5_query_t* ph5_query_create (ph5_t* tree, void* min, void* max, phtree_iteration_function_t function);
 void ph5_query_free (ph5_query_t* query);
 void ph5_query_set (ph5_t* tree, ph5_query_t* query, void* min, void* max, phtree_iteration_function_t function);
 void ph5_query_clear (ph5_query_t* query);
-/*
- * if you need the center point of a window query
- */
-void ph5_query_center (ph5_query_t* query, ph5_point_t* out);
 
 /*
  * use this in your convert_to_point function
