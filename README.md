@@ -32,12 +32,12 @@ There is also a [PH-Tree Discord](https://discord.gg/YmJTWYHPCA) server if you a
 
 Why templates and a bunch of bit/dimensionality specific files?  Because supporting arbitrary bit widths and dimensionality in a single data structure would require much more complexity and overhead.  You probably know what you need/want for your project, all of that complexity and overhead isn't going to help you any, its just going to slow you down.  So the complexity is rolled into the templates and you get a tighter, more efficient, more hackable tree for your project.
 
-Please note that while internal tree data types are publicly defined, you **should not** be directly touching anything inside of them, unless you are changing the functionality of the tree.  They are public so that you do not always have to heap allocate things and because this is C and if you want to shoot yourself in the foot, go for it, its your life :D
-
-Best practice for using this library is probably to wrap most/all of the tree functionality with your own functions, the demos do this with most functions... pay attention to the demos.
+Please note that while internal tree data types are publicly defined, you **should not** be directly touching anything inside of them, unless you are changing the functionality of the tree.  They are public so that you do not always have to heap allocate things and because this is C and if you want to shoot yourself in the foot, go for it :D
 
 
 ## Simple Usage
+
+Best practice for using this library is probably to wrap most/all of the tree functionality with your own functions, the demos do this with most functions... pay attention to the demos.
 
 The phtree source files are in the `source` folder.
 
