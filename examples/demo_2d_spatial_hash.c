@@ -9,15 +9,15 @@
 #include "source/32bit/phtree32_2d.h"
 
 /*
- * 2 dimensional demo
+ * 2 dimensional spatial hash demo
+ *
+ * if you are familiar with spatial hashing
+ * 	this is a version of it using a phtree
  * 
  * a 2d space is broken up into cells/buckets that are 32x32 units
  * the cells/buckets are the indices in the tree
  * 2d points have their xy positions divided by 32 and floored
  * 	to determine which cell/bucket they are put in
- *
- * if you are familiar with spatial hashing
- * 	this is a version of it using a phtree
  */
 
 typedef struct

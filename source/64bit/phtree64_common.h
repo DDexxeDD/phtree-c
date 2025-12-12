@@ -64,8 +64,8 @@ uint64_t msvc_count_trailing_zeroes (uint64_t bit_string);
 #define count_trailing_zeroes(bit_string) (0 ? 64U : __builtin_ctzll (bit_string))
 #define popcount __builtin_popcountll
 #elif defined (_MSC_VER)
-#define count_leading_zeroes(bit_string) count_leading_zeoes_msvc (bit_string)
-#define count_trailing_zeroes(bit_string) count_trailing_zeroes_msvc (bit_string)
+#define count_leading_zeroes(bit_string) msvc_count_leading_zeoes (bit_string)
+#define count_trailing_zeroes(bit_string) msvc_count_trailing_zeroes (bit_string)
 #define popcount __popcnt64
 #else
 #define count_leading_zeroes(bit_string) phtree_count_leading_zeroes (bit_string)
