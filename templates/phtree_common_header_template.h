@@ -14,7 +14,7 @@ typedef uint{{bit_width}}_t phtree_key_t;
 // 	this should be the same as the bit width of your key type
 #define PHTREE_BIT_WIDTH {{bit_width}}
 
-// KEY_ONE is an unsigned value of 1
+// PHTREE_KEY_ONE is an unsigned value of 1
 #define PHTREE_KEY_ONE UINT{{bit_width}}_C(1)
 #define PHTREE_KEY_MAX UINT{{bit_width}}_MAX
 
@@ -24,7 +24,7 @@ typedef uint{{bit_width}}_t phtree_key_t;
 /*
  * generic key converters
  */
-// phtree_int{{bit_width}}_to_key expects input to be a pointer to a {{bit_width}} integer
+// phtree_int{{bit_width}}_to_key expects input to be a pointer to a signed {{bit_width}} bit integer
 phtree_key_t phtree_int{{bit_width}}_to_key (void* input);
 {{#float}}
 // phtree_{{float}}_to_key expects input to be a pointer to a {{float}}

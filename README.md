@@ -8,6 +8,8 @@ The dimensionality of the phtrees here are hardcoded.  This library supports 1-6
 
 This library is designed to be fairly generic, which means there are a lot of void pointers being passed around.  Pay attention to what you are passing in to phtree functions and how you cast what you get out.
 
+Be aware that while this implementation supports 8, 16, 32, and 64 bit widths for the tree, the bit counting functions used internally are all 64 bit.  This library will require your environment to support 64 bit integers.
+
 If you are interested in a simple implementation as reference for understanding or implementing your own phtree, check out the '[reference](https://github.com/DDexxeDD/phtree-c/releases/tag/reference)' tag.
 
 ### Contents
@@ -32,7 +34,7 @@ There is also a [PH-Tree Discord](https://discord.gg/YmJTWYHPCA) server if you a
 
 Why templates and a bunch of bit/dimensionality specific files?  Because supporting arbitrary bit widths and dimensionality in a single data structure would require much more complexity and overhead.  You probably know what you need/want for your project, all of that complexity and overhead isn't going to help you any, its just going to slow you down.  So the complexity is rolled into the templates and you get a tighter, more efficient, more hackable tree for your project.
 
-Please note that while internal tree data types are publicly defined, you **should not** be directly touching anything inside of them, unless you are changing the functionality of the tree.  They are public so that you do not always have to heap allocate things and because this is C and if you want to shoot yourself in the foot, go for it :D
+Please note that while internal tree data types are publicly defined, you **should not** be directly touching anything inside of them, unless you are specifically changing the functionality of the tree.
 
 
 ## Simple Usage
@@ -46,7 +48,7 @@ The phtree source files are in the `source` folder.
 3. Add the chosen .h and .c to your project.
 4. Add the `phtreeXX_common.h` and `phtreeXX_common.c` to your project, where XX is your chosen bit width.
 
-You can have any combination of dimensionalities of the same bit width in your project, they will not conflict with eachother.  Howerver, you can not have trees with different bit width of the same dimensions at the same time, as they use the same type names.  If you want to use different bit width trees of the same dimensionality see [Advanced Usage](#advanced-usage) below.
+You can have any combination of dimensionalities of the same bit width in your project, they will not conflict with eachother.  However, you cannot have trees with different bit widths of the same dimensions at the same time, as they use the same type names.  If you want to use different bit width trees of the same dimensionality see [Advanced Usage](#advanced-usage) below.
 
 [demo_1d](https://github.com/DDexxeDD/phtree-c/blob/main/examples/demo_1d.c) is an example of a simple binary tree.
 
@@ -124,9 +126,9 @@ The .h an .c files are generated using [mustache](https://mustache.github.io/) t
 
 ***!! Do not attempt to generate trees with more than 6 dimensions !!***
 
-The code can not handle more than 6 dimensions and will break.
+The code cannot handle more than 6 dimensions and will break.
 
-If you want to be able to use trees of different bit widths and the same dimensionality at the same time, you will need to generate them with different prefixes (example: ph32_1_, ph64_1_)
+If you want to be able to use trees of different bit widths and the same dimensionality at the same time, you will need to generate them with different prefixes (example: ph32_1d_, ph64_1d_)
 
 
 ## Indexing Axis Aligned Boxes
@@ -151,9 +153,9 @@ Box queries are used in even dimensional trees in which points are being used to
 
 ## A Note About Node Size and Memory Alignment
 
-On the development machine, in almost all combinations of bit widths and dimensions, nodes in the tree are less than 64 bytes in size.  Only trees of 64 bit width and 6 dimensions are greater than 64 bytes.  So if you are worried about cache lines, don't use 64 bit width and 6 dimenions.
+On the development machine, in almost all combinations of bit widths and dimensions, nodes in the tree are less than 64 bytes in size.  Only trees of 64 bit width and 6 dimensions are greater than 64 bytes.  If you are worried about nodes fitting in a single cache line, you can use any bit width and dimensionality _except_ a width of 64 bits in 6 dimensions.
 
-In trees with low bit widths and dimensions, the node point will align to the node's children pointer, so there is a lower limit on how small you can make nodes, unless you disable memory alignment.
+In trees with low bit widths and dimensions, the node point will align to the node's children pointer. This means there is a lower limit on how small you can make nodes, unless you disable memory alignment.
 
 
 ## Building the examples
