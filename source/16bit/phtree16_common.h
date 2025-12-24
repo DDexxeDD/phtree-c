@@ -14,7 +14,7 @@ typedef uint16_t phtree_key_t;
 // 	this should be the same as the bit width of your key type
 #define PHTREE_BIT_WIDTH 16
 
-// KEY_ONE is an unsigned value of 1
+// PHTREE_KEY_ONE is an unsigned value of 1
 #define PHTREE_KEY_ONE UINT16_C(1)
 #define PHTREE_KEY_MAX UINT16_MAX
 
@@ -24,7 +24,7 @@ typedef uint16_t phtree_key_t;
 /*
  * generic key converters
  */
-// phtree_int16_to_key expects input to be a pointer to a 16 integer
+// phtree_int16_to_key expects input to be a pointer to a signed 16 bit integer
 phtree_key_t phtree_int16_to_key (void* input);
 
 /*

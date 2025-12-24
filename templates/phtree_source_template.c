@@ -482,7 +482,8 @@ void {{prefix}}_initialize (
 		return NULL;
 	}
 
-	if ({{prefix}}_initialize (tree, element_create, element_destroy, convert_to_key, convert_to_point{{#even}}, convert_to_box_point{{/even}}))
+	{{prefix}}_initialize (tree, element_create, element_destroy, convert_to_key, convert_to_point{{#even}}, convert_to_box_point{{/even}});
+	if (tree->root.children == NULL)
 	{
 		phtree_free (tree);
 		return NULL;
@@ -943,23 +944,6 @@ void {{prefix}}_query_box_point_set ({{prefix}}_t* tree, {{prefix}}_query_t* que
 	{{prefix}}_query_box_set (tree, query, true, point, point, function);
 }
 {{/even}}
-
-/*
- * create a new window query
- */
-{{prefix}}_query_t* {{prefix}}_query_create ({{prefix}}_t* tree, void* min, void* max, phtree_iteration_function_t function)
-{
-	{{prefix}}_query_t* new_query = phtree_calloc (1, sizeof (*new_query));
-
-	if (!new_query)
-	{
-		return NULL;
-	}
-
-	{{prefix}}_query_set (tree, new_query, min, max);
-
-	return new_query;
-}
 
 void {{prefix}}_query_free ({{prefix}}_query_t* query)
 {

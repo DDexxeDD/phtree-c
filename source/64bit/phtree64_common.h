@@ -14,7 +14,7 @@ typedef uint64_t phtree_key_t;
 // 	this should be the same as the bit width of your key type
 #define PHTREE_BIT_WIDTH 64
 
-// KEY_ONE is an unsigned value of 1
+// PHTREE_KEY_ONE is an unsigned value of 1
 #define PHTREE_KEY_ONE UINT64_C(1)
 #define PHTREE_KEY_MAX UINT64_MAX
 
@@ -24,7 +24,7 @@ typedef uint64_t phtree_key_t;
 /*
  * generic key converters
  */
-// phtree_int64_to_key expects input to be a pointer to a 64 integer
+// phtree_int64_to_key expects input to be a pointer to a signed 64 bit integer
 phtree_key_t phtree_int64_to_key (void* input);
 // phtree_double_to_key expects input to be a pointer to a double
 phtree_key_t phtree_double_to_key (void* input);

@@ -48,7 +48,7 @@ typedef struct {{prefix}}_node_t
 	int8_t child_count;
 
 	/*
-	 * the distance between a node and its parent, not inclusive
+	 * the distance between a node and its parent, NOT inclusive
 	 * example: 
 	 * 	if parent->postfix_length == 5
 	 * 	and child->postfix_length == 1
@@ -240,7 +240,6 @@ void {{prefix}}_query ({{prefix}}_t* tree, {{prefix}}_query_t* query, void* data
 /*
  * allocate a query
  */
-{{prefix}}_query_t* {{prefix}}_query_create ({{prefix}}_t* tree, void* min, void* max, phtree_iteration_function_t function);
 void {{prefix}}_query_free ({{prefix}}_query_t* query);
 void {{prefix}}_query_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, void* min, void* max, phtree_iteration_function_t function);
 {{#even}}

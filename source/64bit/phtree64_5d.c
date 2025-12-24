@@ -446,7 +446,8 @@ ph5_t* ph5_create (
 		return NULL;
 	}
 
-	if (ph5_initialize (tree, element_create, element_destroy, convert_to_key, convert_to_point))
+	ph5_initialize (tree, element_create, element_destroy, convert_to_key, convert_to_point);
+	if (tree->root.children == NULL)
 	{
 		phtree_free (tree);
 		return NULL;
@@ -863,23 +864,6 @@ void ph5_query_set (ph5_t* tree, ph5_query_t* query, void* min_in, void* max_in,
 	query_set_internal (tree, query, &min, &max, function);
 }
 
-
-/*
- * create a new window query
- */
-ph5_query_t* ph5_query_create (ph5_t* tree, void* min, void* max, phtree_iteration_function_t function)
-{
-	ph5_query_t* new_query = phtree_calloc (1, sizeof (*new_query));
-
-	if (!new_query)
-	{
-		return NULL;
-	}
-
-	ph5_query_set (tree, new_query, min, max);
-
-	return new_query;
-}
 
 void ph5_query_free (ph5_query_t* query)
 {

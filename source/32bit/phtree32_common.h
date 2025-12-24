@@ -14,7 +14,7 @@ typedef uint32_t phtree_key_t;
 // 	this should be the same as the bit width of your key type
 #define PHTREE_BIT_WIDTH 32
 
-// KEY_ONE is an unsigned value of 1
+// PHTREE_KEY_ONE is an unsigned value of 1
 #define PHTREE_KEY_ONE UINT32_C(1)
 #define PHTREE_KEY_MAX UINT32_MAX
 
@@ -24,7 +24,7 @@ typedef uint32_t phtree_key_t;
 /*
  * generic key converters
  */
-// phtree_int32_to_key expects input to be a pointer to a 32 integer
+// phtree_int32_to_key expects input to be a pointer to a signed 32 bit integer
 phtree_key_t phtree_int32_to_key (void* input);
 // phtree_float_to_key expects input to be a pointer to a float
 phtree_key_t phtree_float_to_key (void* input);

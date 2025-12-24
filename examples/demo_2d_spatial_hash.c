@@ -179,10 +179,10 @@ int main ()
 	find_2d (tree, &things[11]);
 
 	printf ("\nquery from {0.0, 0.0} to {64.0, 64.0}\n");
-	ph2_query_t* query = ph2_query_create ();
+	ph2_query_t query;
 	// set up a query for points in the +,+ quadrant
 	// 	hopefully rand generated some points there :D
-	ph2_query_set (tree, query, &(thing2d_t) {{0.0f, 0.0f}, 0}, &(thing2d_t) {{64.0f, 64.0f}, 0}, query_cache_2d);
+	ph2_query_set (tree, &query, &(thing2d_t) {{0.0f, 0.0f}, 0}, &(thing2d_t) {{64.0f, 64.0f}, 0}, query_cache_2d);
 
 	// a cache for the elements our query finds
 	// !! if the tree changes after the cache is created (insertions/removals) !!
@@ -191,7 +191,7 @@ int main ()
 	cvector (element_2d_t*) elements = NULL;
 	cvector_init (elements, 2, NULL);
 
-	ph2_query (tree, query, &elements);
+	ph2_query (tree, &query, &elements);
 
 	printf ("query results:\n");
 	if (cvector_size (elements) == 0)

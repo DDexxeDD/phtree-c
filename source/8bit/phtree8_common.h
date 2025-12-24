@@ -14,7 +14,7 @@ typedef uint8_t phtree_key_t;
 // 	this should be the same as the bit width of your key type
 #define PHTREE_BIT_WIDTH 8
 
-// KEY_ONE is an unsigned value of 1
+// PHTREE_KEY_ONE is an unsigned value of 1
 #define PHTREE_KEY_ONE UINT8_C(1)
 #define PHTREE_KEY_MAX UINT8_MAX
 
@@ -24,7 +24,7 @@ typedef uint8_t phtree_key_t;
 /*
  * generic key converters
  */
-// phtree_int8_to_key expects input to be a pointer to a 8 integer
+// phtree_int8_to_key expects input to be a pointer to a signed 8 bit integer
 phtree_key_t phtree_int8_to_key (void* input);
 
 /*

@@ -48,7 +48,7 @@ typedef struct ph1_node_t
 	int8_t child_count;
 
 	/*
-	 * the distance between a node and its parent, not inclusive
+	 * the distance between a node and its parent, NOT inclusive
 	 * example: 
 	 * 	if parent->postfix_length == 5
 	 * 	and child->postfix_length == 1
@@ -210,7 +210,6 @@ void ph1_query (ph1_t* tree, ph1_query_t* query, void* data);
 /*
  * allocate a query
  */
-ph1_query_t* ph1_query_create (ph1_t* tree, void* min, void* max, phtree_iteration_function_t function);
 void ph1_query_free (ph1_query_t* query);
 void ph1_query_set (ph1_t* tree, ph1_query_t* query, void* min, void* max, phtree_iteration_function_t function);
 void ph1_query_clear (ph1_query_t* query);

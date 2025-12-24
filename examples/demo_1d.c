@@ -117,8 +117,8 @@ int main ()
 
 	int query_min = -5;
 	int query_max = 5;
-	ph1_query_t* query = ph1_query_create ();
-	ph1_query_set (tree, query, &query_min, &query_max, query_cache_1d);
+	ph1_query_t query;
+	ph1_query_set (tree, &query, &query_min, &query_max, query_cache_1d);
 
 	// a cache for the elements our query finds
 	// !! if the tree changes after the cache is created (insertions/removals) !!
@@ -127,7 +127,7 @@ int main ()
 	cvector (int) integers = NULL;
 	cvector_init (integers, 5, NULL);
 
-	ph1_query (tree, query, &integers);
+	ph1_query (tree, &query, &integers);
 
 	printf ("\nquerying the tree from %i to %i\n", query_min, query_max);
 	printf ("elements in query: ");

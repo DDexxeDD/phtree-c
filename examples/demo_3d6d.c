@@ -159,14 +159,14 @@ int main ()
 	ph3_for_each (tree3d, element_simple_print, NULL);
 	printf ("\n\n");
 
-	ph3_query_t* query3d = ph3_query_create ();
-	ph3_query_set (tree3d, query3d, &box_a.min, &box_a.max, query_cache_element);
+	ph3_query_t query3d;
+	ph3_query_set (tree3d, &query3d, &box_a.min, &box_a.max, query_cache_element);
 
 	cvector (element_simple_t*) query_cache = NULL;
 	cvector_init (query_cache, 2, NULL);
 
 	printf ("points in range (%.1f, %.1f, %.1f) to (%.1f, %.1f, %.1f)\n", box_a.min.x, box_a.min.y, box_a.min.z, box_a.max.x, box_a.max.y, box_a.max.z);
-	ph3_query (tree3d, query3d, &query_cache);
+	ph3_query (tree3d, &query3d, &query_cache);
 	for (int iter = 0; iter < cvector_size (query_cache); iter++)
 	{
 		printf ("  point %c\n", query_cache[iter]->id);
@@ -176,8 +176,8 @@ int main ()
 	cvector_clear (query_cache);
 
 	printf ("points in range (%.1f, %.1f, %.1f) to (%.1f, %.1f, %.1f)\n", box_b.min.x, box_b.min.y, box_b.min.z, box_b.max.x, box_b.max.y, box_b.max.z);
-	ph3_query_set (tree3d, query3d, &box_b.min, &box_b.max, query_cache_element);
-	ph3_query (tree3d, query3d, &query_cache);
+	ph3_query_set (tree3d, &query3d, &box_b.min, &box_b.max, query_cache_element);
+	ph3_query (tree3d, &query3d, &query_cache);
 	for (int iter = 0; iter < cvector_size (query_cache); iter++)
 	{
 		printf ("  point %c\n", query_cache[iter]->id);
@@ -201,10 +201,10 @@ int main ()
 	ph6_for_each (tree6d, element_simple_print, NULL);
 	printf ("\n\n");
 
-	ph6_query_t* query6d = ph6_query_create ();
+	ph6_query_t query6d;
 
-	ph6_query_box_set (tree6d, query6d, false, &box_c.min, &box_c.max, query_cache_element);
-	ph6_query (tree6d, query6d, &query_cache);
+	ph6_query_box_set (tree6d, &query6d, false, &box_c.min, &box_c.max, query_cache_element);
+	ph6_query (tree6d, &query6d, &query_cache);
 
 	printf ("boxes contained in box {(%.1f, %.1f, %.1f), (%.1f, %.1f, %.1f)}\n", box_c.min.x, box_c.min.y, box_c.min.z, box_c.max.x, box_c.max.y, box_c.max.z);
 	for (int iter = 0; iter < cvector_size (query_cache); iter++)
@@ -215,8 +215,8 @@ int main ()
 
 	cvector_clear (query_cache);
 
-	ph6_query_box_set (tree6d, query6d, true, &box_c.min, &box_c.max, query_cache_element);
-	ph6_query (tree6d, query6d, &query_cache);
+	ph6_query_box_set (tree6d, &query6d, true, &box_c.min, &box_c.max, query_cache_element);
+	ph6_query (tree6d, &query6d, &query_cache);
 
 	printf ("boxes intersecting box {(%.1f, %.1f, %.1f), (%.1f, %.1f, %.1f)}\n",  box_c.min.x, box_c.min.y, box_c.min.z, box_c.max.x, box_c.max.y, box_c.max.z);
 	for (int iter = 0; iter < cvector_size (query_cache); iter++)
@@ -227,8 +227,8 @@ int main ()
 
 	cvector_clear (query_cache);
 
-	ph6_query_box_point_set (tree6d, query6d, &point_b.position, query_cache_element);
-	ph6_query (tree6d, query6d, &query_cache);
+	ph6_query_box_point_set (tree6d, &query6d, &point_b.position, query_cache_element);
+	ph6_query (tree6d, &query6d, &query_cache);
 
 	printf ("boxes intersecting point %c (%.1f, %.1f, %.1f)\n", point_b.id, point_b.position.x, point_b.position.y, point_b.position.z);
 	for (int iter = 0; iter < cvector_size (query_cache); iter++)
@@ -239,8 +239,8 @@ int main ()
 
 	cvector_clear (query_cache);
 
-	ph6_query_box_point_set (tree6d, query6d, &point_a.position, query_cache_element);
-	ph6_query (tree6d, query6d, &query_cache);
+	ph6_query_box_point_set (tree6d, &query6d, &point_a.position, query_cache_element);
+	ph6_query (tree6d, &query6d, &query_cache);
 
 	printf ("boxes intersecting point %c (%.1f, %.1f, %.1f)\n", point_a.id, point_a.position.x, point_a.position.y, point_a.position.z);
 	for (int iter = 0; iter < cvector_size (query_cache); iter++)

@@ -449,7 +449,8 @@ ph4_t* ph4_create (
 		return NULL;
 	}
 
-	if (ph4_initialize (tree, element_create, element_destroy, convert_to_key, convert_to_point, convert_to_box_point))
+	ph4_initialize (tree, element_create, element_destroy, convert_to_key, convert_to_point, convert_to_box_point);
+	if (tree->root.children == NULL)
 	{
 		phtree_free (tree);
 		return NULL;
@@ -907,23 +908,6 @@ void ph4_query_box_set (ph4_t* tree, ph4_query_t* query, bool intersect, void* m
 void ph4_query_box_point_set (ph4_t* tree, ph4_query_t* query, void* point, phtree_iteration_function_t function)
 {
 	ph4_query_box_set (tree, query, true, point, point, function);
-}
-
-/*
- * create a new window query
- */
-ph4_query_t* ph4_query_create (ph4_t* tree, void* min, void* max, phtree_iteration_function_t function)
-{
-	ph4_query_t* new_query = phtree_calloc (1, sizeof (*new_query));
-
-	if (!new_query)
-	{
-		return NULL;
-	}
-
-	ph4_query_set (tree, new_query, min, max);
-
-	return new_query;
 }
 
 void ph4_query_free (ph4_query_t* query)
