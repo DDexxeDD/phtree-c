@@ -2,7 +2,6 @@
 	"prefix" : "ph3",
 	"bit_width" : 64,
 	"dimensions" : 3,
-	"float" : "double",
 	"max_children" : 8,
 	"even" : false,
 	"1d" : true,

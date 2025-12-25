@@ -18,9 +18,6 @@ done
 
 # 8 bit
 
-mustach templates/8bit/mustache_common.json templates/phtree_common_header_template.h > source/8bit/phtree8_common.h
-mustach templates/8bit/mustache_common.json templates/phtree_common_source_template.c > source/8bit/phtree8_common.c
-
 mustach templates/8bit/mustache_1d.json templates/phtree_header_template.h > source/8bit/phtree8_1d.h
 mustach templates/8bit/mustache_1d.json templates/phtree_source_template.c > source/8bit/phtree8_1d.c
 
@@ -41,9 +38,6 @@ mustach templates/8bit/mustache_6d.json templates/phtree_source_template.c > sou
 
 
 # 16 bit
-
-mustach templates/16bit/mustache_common.json templates/phtree_common_header_template.h > source/16bit/phtree16_common.h
-mustach templates/16bit/mustache_common.json templates/phtree_common_source_template.c > source/16bit/phtree16_common.c
 
 mustach templates/16bit/mustache_1d.json templates/phtree_header_template.h > source/16bit/phtree16_1d.h
 mustach templates/16bit/mustache_1d.json templates/phtree_source_template.c > source/16bit/phtree16_1d.c
@@ -66,9 +60,6 @@ mustach templates/16bit/mustache_6d.json templates/phtree_source_template.c > so
 
 # 32 bit
 
-mustach templates/32bit/mustache_common.json templates/phtree_common_header_template.h > source/32bit/phtree32_common.h
-mustach templates/32bit/mustache_common.json templates/phtree_common_source_template.c > source/32bit/phtree32_common.c
-
 mustach templates/32bit/mustache_1d.json templates/phtree_header_template.h > source/32bit/phtree32_1d.h
 mustach templates/32bit/mustache_1d.json templates/phtree_source_template.c > source/32bit/phtree32_1d.c
 
@@ -89,9 +80,6 @@ mustach templates/32bit/mustache_6d.json templates/phtree_source_template.c > so
 
 
 # 64 bit
-
-mustach templates/64bit/mustache_common.json templates/phtree_common_header_template.h > source/64bit/phtree64_common.h
-mustach templates/64bit/mustache_common.json templates/phtree_common_source_template.c > source/64bit/phtree64_common.c
 
 mustach templates/64bit/mustache_1d.json templates/phtree_header_template.h > source/64bit/phtree64_1d.h
 mustach templates/64bit/mustache_1d.json templates/phtree_source_template.c > source/64bit/phtree64_1d.c

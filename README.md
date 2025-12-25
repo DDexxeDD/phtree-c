@@ -19,6 +19,7 @@ If you are interested in a simple implementation as reference for understanding 
 [Indexing Axis Aligned Boxes](#indexing-axis-aligned-boxes) \
 [Queries](#queries) \
 [Building Examples](#building-the-examples) \
+[Notes](#notes) \
 [License](#licenses)
 
 ## Reporting Bugs/Contributing/Contact
@@ -34,7 +35,7 @@ There is also a [PH-Tree Discord](https://discord.gg/YmJTWYHPCA) server if you a
 
 Why templates and a bunch of bit/dimensionality specific files?  Because supporting arbitrary bit widths and dimensionality in a single data structure would require much more complexity and overhead.  You probably know what you need/want for your project, all of that complexity and overhead isn't going to help you any, its just going to slow you down.  So the complexity is rolled into the templates and you get a tighter, more efficient, more hackable tree for your project.
 
-Please note that while internal tree data types are publicly defined, you **should not** be directly touching anything inside of them, unless you are specifically changing the functionality of the tree.
+Please note that while internal tree data types are publicly defined, you **should not** be directly touching anything inside of them, unless you are specifically changing or adding to the functionality of the tree.
 
 
 ## Simple Usage
@@ -46,7 +47,6 @@ The phtree source files are in the `source` folder.
 1. Choose a bit width (8, 16, 32, 64).  Unless you are indexing doubles, you will probably be fine with 32 bit.
 2. Choose the dimensionality that you want (1-6).
 3. Add the chosen .h and .c to your project.
-4. Add the `phtreeXX_common.h` and `phtreeXX_common.c` to your project, where XX is your chosen bit width.
 
 You can have any combination of dimensionalities of the same bit width in your project, they will not conflict with eachother.  However, you cannot have trees with different bit widths of the same dimensions at the same time, as they use the same type names.  If you want to use different bit width trees of the same dimensionality see [Advanced Usage](#advanced-usage) below.
 
@@ -100,6 +100,8 @@ This function will need to deallocate anything in the element that needs to be d
 
 This function needs to convert whatever is passed in to it (likely an integer or float), into a single phtree_key_t value.
 
+There are reference implementations for converting 32 bit signed integers and 32 bit floating point numbers to 32 bit phtree keys provided in [reference_to_key_functions.c](https://github.com/DDexxeDD/phtree-c/blob/main/source/reference_to_key_functions.c) .
+
 ### Define a function to convert a more complex type into a tree point
 
 `void convert_to_point (tree_t* tree, point* out, void* input)`
@@ -151,13 +153,6 @@ Window queries are normal point to point range queries.  In a window query you s
 Box queries are used in even dimensional trees in which points are being used to represent lower dimensional bounding boxes.  If you are using a 6d tree to index 3d cuboids, you would use a box query to find those points.  The same goes for using 4d trees to index 2d boxes and 2d trees to index 1d line segments.
 
 
-## A Note About Node Size and Memory Alignment
-
-On the development machine, in almost all combinations of bit widths and dimensions, nodes in the tree are less than 64 bytes in size.  Only trees of 64 bit width and 6 dimensions are greater than 64 bytes.  If you are worried about nodes fitting in a single cache line, you can use any bit width and dimensionality _except_ a width of 64 bits in 6 dimensions.
-
-In trees with low bit widths and dimensions, the node point will align to the node's children pointer. This means there is a lower limit on how small you can make nodes, unless you disable memory alignment.
-
-
 ## Building the examples
 
 You will need [meson](https://mesonbuild.com/Getting-meson.html) and [ninja](https://ninja-build.org/) to build the examples.
@@ -173,6 +168,14 @@ This will create the '`build`' directory.
 The executables will be in the `build` directory.
 
 The demos have only been tested on linux, but they should work on other platforms.
+
+
+## Notes
+### Node Size and Memory Alignment
+
+On the development machine, in almost all combinations of bit widths and dimensions, nodes in the tree are less than 64 bytes in size.  Only trees of 64 bit width and 6 dimensions are greater than 64 bytes.  If you are worried about nodes fitting in a single cache line, you can use any bit width and dimensionality _except_ a width of 64 bits in 6 dimensions.
+
+In trees with low bit widths and dimensions, the node point will align to the node's children pointer. This means there is a lower limit on how small you can make nodes, unless you disable memory alignment.
 
 
 ## Licenses

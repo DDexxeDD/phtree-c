@@ -86,6 +86,17 @@ void query_cache_2d (void* element_in, void* data)
 	cvector_push_back (*list, element);
 }
 
+// phtree_int32_to_key expects input to be a pointer to a signed 32 bit integer
+phtree_key_t phtree_int32_to_key (void* input)
+{
+	phtree_key_t b = 0;
+
+	memcpy (&b, input, sizeof (phtree_key_t));
+	b ^= PHTREE32_SIGN_BIT;  // flip sign bit
+
+	return b;
+}
+
 int main ()
 {
 	srand (time (NULL));

@@ -2,7 +2,6 @@
 	"prefix" : "ph5",
 	"bit_width" : 64,
 	"dimensions" : 5,
-	"float" : "double",
 	"max_children" : 32,
 	"even" : false,
 	"1d" : true,

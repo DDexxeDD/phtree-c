@@ -129,6 +129,31 @@ void insert_box_3d (ph6_t* tree, box3d_t* box)
 	element->id = box->id;
 }
 
+// phtree_float_to_key expects input to be a pointer to a float
+phtree_key_t phtree_float_to_key (void* input)
+{
+	phtree_key_t bits;
+
+	memcpy (&bits, input, sizeof (phtree_key_t));
+
+	// if the float is negative
+	// 	convert to two's complement (~bits + 1)
+	// 	then & with (PHTREE32_KEY_MAX >> 1)
+	// 		which will convert -0 to 0
+	if (bits & PHTREE32_SIGN_BIT)
+	{
+		bits = ((~bits) + 1) & (PHTREE32_KEY_MAX >> 1);
+	}
+	else
+	{
+		// if the float is positive
+		// 	all we need to do is flip the sign bit to 1
+		bits |= PHTREE32_SIGN_BIT;
+	}
+
+	return bits;
+}
+
 int main ()
 {
 	ph3_t* tree3d = ph3_create (

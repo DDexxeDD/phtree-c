@@ -2,7 +2,6 @@
 	"prefix" : "ph4",
 	"bit_width" : 64,
 	"dimensions" : 4,
-	"float" : "double",
 	"max_children" : 16,
 	"even" : true,
 	"1d" : true,

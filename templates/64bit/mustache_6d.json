@@ -2,7 +2,6 @@
 	"prefix" : "ph6",
 	"bit_width" : 64,
 	"dimensions" : 6,
-	"float" : "double",
 	"max_children" : 64,
 	"even" : true,
 	"1d" : true,

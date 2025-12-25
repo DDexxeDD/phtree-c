@@ -3,8 +3,93 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "phtree64_common.h"
 #include "phtree64_5d.h"
+
+#if defined (_MSC_VER)
+#include <intrin.h>
+uint64_t msvc64_5d_count_leading_zeoes (uint64_t bit_string)
+{
+	unsigned long leading_zero = 0;
+	return _BitScanReverse64 (&leading_zero, bit_string) ? 63 - leading_zero : 64U;
+}
+#endif
+
+uint64_t phtree64_5d_count_leading_zeroes (uint64_t bit_string)
+{
+	if (bit_string == 0)
+	{
+		return 64;
+	}
+
+	uint64_t n = 1;
+	uint32_t x = (bit_string >> 32);
+
+	if (x == 0)
+	{
+		n += 32;
+		x = (int) bit_string;
+	}
+
+	if (x >> 16 == 0)
+	{
+		n += 16;
+		x <<= 16;
+	}
+
+	if (x >> 24 == 0)
+	{
+		n += 8;
+		x <<= 8;
+	}
+
+	if (x >> 28 == 0)
+	{
+		n += 4;
+		x <<= 4;
+	}
+
+	if (x >> 30 == 0)
+	{
+		n += 2;
+		x <<= 2;
+	}
+
+	n -= x >> 31;
+
+	return n;
+}
+
+/*
+ * from: http://en.wikipedia.org/wiki/Hamming_weight#Efficient_implementation
+ * This uses fewer arithmetic operations than any other known
+ * implementation on machines with fast multiplication.
+ * It uses 12 arithmetic operations, one of which is a multiply.
+ */
+uint64_t phtree64_5d_popcount (uint64_t bit_string)
+{
+	uint64_t m1 = 0x5555555555555555ull;  // binary: 0101...
+	uint64_t m2 = 0x3333333333333333ull;  // binary: 00110011...
+	uint64_t m4 = 0x0F0F0F0F0F0F0F0Full;  // binary: 00001111...
+	uint64_t h01 = 0x0101010101010101ull;  // the sum of 256 to the power of 0, 1, 2, 3, ...
+
+	bit_string -= (bit_string >> 1) & m1;  // put count of each 2 bits into those 2 bits
+	bit_string = (bit_string & m2) + ((bit_string >> 2) & m2);  // put count of each 4 bits into those 4 bits
+	bit_string = (bit_string + (bit_string >> 4)) & m4;  // put count of each 8 bits into those 8 bits
+
+	// return left 8 bits of bit_string + (bit_string << 8) + (bit_string << 16) + (bit_string << 24) + ...
+	return (bit_string * h01) >> 56;
+}
+
+#if defined (__clang__) || defined (__GNUC__)
+#define count_leading_zeroes(bit_string) (0 ? 64U : __builtin_clzll (bit_string))
+#define popcount __builtin_popcountll
+#elif defined (_MSC_VER)
+#define count_leading_zeroes(bit_string) msvc64_5d_count_leading_zeoes (bit_string)
+#define popcount __popcnt64
+#else
+#define count_leading_zeroes(bit_string) phtree64_5d_count_leading_zeroes (bit_string)
+#define popcount phtree64_5d_popcount
+#endif
 
 /*
  * the maximum bit width we support
@@ -163,7 +248,7 @@ static bool point_in_window (ph5_node_t* node, ph5_query_t* window)
 static hypercube_address_t calculate_hypercube_address (ph5_point_t* point, ph5_node_t* node)
 {
 	// which bit in the point->values we are interested in
-	phtree_key_t bit_mask = PHTREE_KEY_ONE << node->postfix_length;
+	phtree_key_t bit_mask = PHTREE64_KEY_ONE << node->postfix_length;
 	hypercube_address_t address = 0;
 
 	// for each dimension
@@ -244,7 +329,7 @@ static void node_initialize (ph5_node_t* node, uint16_t infix_length, uint16_t p
 	node->postfix_length = postfix_length;
 	node->point = *point;
 
-	phtree_key_t key_mask = PHTREE_KEY_MAX << (postfix_length + 1);
+	phtree_key_t key_mask = PHTREE64_KEY_MAX << (postfix_length + 1);
 
 	for (int dimension = 0; dimension < DIMENSIONS; dimension++)
 	{
@@ -253,7 +338,7 @@ static void node_initialize (ph5_node_t* node, uint16_t infix_length, uint16_t p
 		// set the bits at node to 1
 		// 	this makes the node->point the center of the node
 		// 	which is useful later in window queries
-		node->point.values[dimension] |= PHTREE_KEY_ONE << postfix_length;
+		node->point.values[dimension] |= PHTREE64_KEY_ONE << postfix_length;
 	}
 }
 
@@ -305,7 +390,7 @@ static int number_of_diverging_bits (ph5_point_t* point_a, ph5_point_t* point_b)
 
 	// count_leading_zeroes always uses the 64 bit implementation
 	// 	and will return a number based on a 64 bit input
-	// 	so we use PHTREE_BIT_WIDTH_MAX instead of PHTREE_BIT_WIDTH
+	// 	so we use PHTREE_BIT_WIDTH_MAX instead of PHTREE64_BIT_WIDTH
 	return PHTREE_BIT_WIDTH_MAX - count_leading_zeroes (difference);
 }
 
@@ -903,3 +988,6 @@ void ph5_point_set (ph5_t* tree, ph5_point_t* point, void* a, void* b, void* c, 
 #undef DIMENSIONS
 #undef NODE_CHILD_MAX
 #undef CHILD_SHIFT
+
+#undef count_leading_zeroes
+#undef popcount

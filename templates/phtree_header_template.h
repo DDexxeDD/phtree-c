@@ -4,7 +4,49 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "phtree{{bit_width}}_common.h"
+/*
+ * begin common section
+ *
+ * this common section contains functionality which is used in all {{bit_width}} bit phtrees
+ * 	regardless of their dimensionality
+ */
+
+typedef uint{{bit_width}}_t phtree_key_t;
+
+// use this for converting input into keys
+// 	this should be the same as the bit width of your key type
+#define PHTREE{{bit_width}}_BIT_WIDTH {{bit_width}}
+
+// PHTREE_KEY_ONE is an unsigned value of 1
+#define PHTREE{{bit_width}}_KEY_ONE UINT{{bit_width}}_C(1)
+#define PHTREE{{bit_width}}_KEY_MAX UINT{{bit_width}}_MAX
+
+// if you need to flip the sign bit of phtree_key_t in a conversion function
+#define PHTREE{{bit_width}}_SIGN_BIT (PHTREE{{bit_width}}_KEY_ONE << (PHTREE{{bit_width}}_BIT_WIDTH - 1))
+
+/*
+ * functions to be run on elements when iterating the tree
+ * data is any outside data you want to pass in to the function
+ */
+typedef void (*phtree_iteration_function_t) (void* element, void* data);
+
+/*
+ * to use your own custom allocators
+ * 	define these somewhere before here
+ */
+#ifndef phtree_calloc
+#define phtree_calloc calloc
+#endif
+#ifndef phtree_free
+#define phtree_free free
+#endif
+#ifndef phtree_realloc
+#define phtree_realloc realloc
+#endif
+
+/*
+ * end common section
+ */
 
 /*
  * an index point in the tree

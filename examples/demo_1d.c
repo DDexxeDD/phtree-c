@@ -90,6 +90,17 @@ void demo_1d_find (ph1_t* tree, int index)
 	printf ("found %i\n", element->number);
 }
 
+// phtree_int32_to_key expects input to be a pointer to a signed 32 bit integer
+phtree_key_t phtree_int32_to_key (void* input)
+{
+	phtree_key_t b = 0;
+
+	memcpy (&b, input, sizeof (phtree_key_t));
+	b ^= PHTREE32_SIGN_BIT;  // flip sign bit
+
+	return b;
+}
+
 int main ()
 {
 	ph1_t* tree = ph1_create (

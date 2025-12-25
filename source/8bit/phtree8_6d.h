@@ -4,7 +4,49 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "phtree8_common.h"
+/*
+ * begin common section
+ *
+ * this common section contains functionality which is used in all 8 bit phtrees
+ * 	regardless of their dimensionality
+ */
+
+typedef uint8_t phtree_key_t;
+
+// use this for converting input into keys
+// 	this should be the same as the bit width of your key type
+#define PHTREE8_BIT_WIDTH 8
+
+// PHTREE_KEY_ONE is an unsigned value of 1
+#define PHTREE8_KEY_ONE UINT8_C(1)
+#define PHTREE8_KEY_MAX UINT8_MAX
+
+// if you need to flip the sign bit of phtree_key_t in a conversion function
+#define PHTREE8_SIGN_BIT (PHTREE8_KEY_ONE << (PHTREE8_BIT_WIDTH - 1))
+
+/*
+ * functions to be run on elements when iterating the tree
+ * data is any outside data you want to pass in to the function
+ */
+typedef void (*phtree_iteration_function_t) (void* element, void* data);
+
+/*
+ * to use your own custom allocators
+ * 	define these somewhere before here
+ */
+#ifndef phtree_calloc
+#define phtree_calloc calloc
+#endif
+#ifndef phtree_free
+#define phtree_free free
+#endif
+#ifndef phtree_realloc
+#define phtree_realloc realloc
+#endif
+
+/*
+ * end common section
+ */
 
 /*
  * an index point in the tree
