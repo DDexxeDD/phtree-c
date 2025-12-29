@@ -8,10 +8,6 @@
 #include "source/32bit/phtree32_3d.h"
 #include "source/32bit/phtree32_6d.h"
 
-// TODO
-// 	need to finish element create
-// 		whatever is being passed in is the thing we need to get info from
-
 /*
  * n-dimensional boxes can be stored as 2*n-dimensional points
  *
