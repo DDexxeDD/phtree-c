@@ -502,19 +502,13 @@ static void entry_free (ph6_t* tree, ph6_node_t* node)
 void ph6_initialize (
 	ph6_t* tree,
 	void* (*element_create) (void* input),
-	void (*element_destroy) (void*),
-	phtree_key_t (*convert_to_key) (void* input),
-	void (*convert_to_point) (ph6_t* tree, ph6_point_t* out, void* input),
-	void (*convert_to_box_point) (ph6_t* tree, ph6_point_t* out, void* input))
+	void (*element_destroy) (void*))
 {
 	ph6_point_t empty_point = {{0, 0, 0, 0, 0, 0}};
 	node_initialize (&tree->root, 0, PHTREE_DEPTH - 1, &empty_point);
 
 	tree->element_create = element_create;
 	tree->element_destroy = element_destroy;
-	tree->convert_to_key = convert_to_key;
-	tree->convert_to_point = convert_to_point;
-	tree->convert_to_box_point = convert_to_box_point;
 }
 
 /*
@@ -522,13 +516,10 @@ void ph6_initialize (
  */
 ph6_t ph6_create (
 	void* (*element_create) (void* input),
-	void (*element_destroy) (void* element),
-	phtree_key_t (*convert_to_key) (void* input),
-	void (*convert_to_point) (ph6_t* tree, ph6_point_t* out, void* input),
-	void (*convert_to_box_point) (ph6_t* tree, ph6_point_t* out, void* input))
+	void (*element_destroy) (void* element))
 {
 	ph6_t tree;
-	ph6_initialize (&tree, element_create, element_destroy, convert_to_key, convert_to_point, convert_to_box_point);
+	ph6_initialize (&tree, element_create, element_destroy);
 
 	return tree;
 }
@@ -623,23 +614,21 @@ void ph6_for_each (ph6_t* tree, phtree_iteration_function_t function, void* data
 	}
 }
 
-void* ph6_insert (ph6_t* tree, void* index)
+void* ph6_insert (ph6_t* tree, ph6_point_t* index, void* element)
 {
-	ph6_point_t point;
-	tree->convert_to_point (tree, &point, index);
 	ph6_node_t* current_node = &tree->root;
 
 	while (!phtree_node_is_leaf (current_node))
 	{
-		current_node = node_add (current_node, &point);
+		current_node = node_add (current_node, index);
 	}
 
-	int offset = child_index (current_node, calculate_hypercube_address (&point, current_node));
+	int offset = child_index (current_node, calculate_hypercube_address (index, current_node));
 	ph6_node_t* entry = current_node->children + offset;
 
 	if (!entry->children)
 	{
-		entry->children = tree->element_create (index);
+		entry->children = tree->element_create (element);
 	}
 
 	return entry->children;
@@ -681,11 +670,9 @@ ph6_node_t* ph6_find_entry (ph6_t* tree, ph6_point_t* point)
  * find an element at a specific index
  * returns NULL if there is no element at the index
  */
-void* ph6_find (ph6_t* tree, void* index)
+void* ph6_find (ph6_t* tree, ph6_point_t* index)
 {
-	ph6_point_t point;
-	tree->convert_to_point (tree, &point, index);
-	ph6_node_t* entry = ph6_find_entry (tree, &point);
+	ph6_node_t* entry = ph6_find_entry (tree, index);
 
 	if (!entry)
 	{
@@ -729,10 +716,8 @@ void ph6_remove_entry (ph6_t* tree, ph6_node_t* node, hypercube_address_t addres
 	node->active_children &= ~(PHTREE_CHILD_FLAG << (CHILD_SHIFT - address));
 }
 
-void ph6_remove (ph6_t* tree, void* index)
+void ph6_remove (ph6_t* tree, ph6_point_t* point)
 {
-	ph6_point_t point;
-	tree->convert_to_point (tree, &point, index);
 	int stack_index = 0;
 	ph6_node_t* node_stack[PHTREE_DEPTH] = {0};
 	ph6_node_t* current_node = &tree->root;
@@ -740,7 +725,7 @@ void ph6_remove (ph6_t* tree, void* index)
 
 	while (!phtree_node_is_leaf (current_node))
 	{
-		address = calculate_hypercube_address (&point, current_node);
+		address = calculate_hypercube_address (point, current_node);
 
 		if (child_active (current_node, address))
 		{
@@ -755,7 +740,7 @@ void ph6_remove (ph6_t* tree, void* index)
 		}
 	}
 
-	ph6_remove_entry (tree, current_node, calculate_hypercube_address (&point, current_node));
+	ph6_remove_entry (tree, current_node, calculate_hypercube_address (point, current_node));
 
 	if (current_node->child_count == 0)
 	{
@@ -765,7 +750,7 @@ void ph6_remove (ph6_t* tree, void* index)
 
 		ph6_node_t* parent = node_stack[stack_index];
 
-		ph6_remove_child (parent, calculate_hypercube_address (&point, parent));
+		ph6_remove_child (parent, calculate_hypercube_address (point, parent));
 		stack_index--;
 
 		// node_stack[0] is root
@@ -786,7 +771,7 @@ void ph6_remove (ph6_t* tree, void* index)
 				break;
 			}
 
-			int index = child_index (parent, calculate_hypercube_address (&point, parent));
+			int index = child_index (parent, calculate_hypercube_address (point, parent));
 
 			// current_node->children[0] is the only child
 			parent->children[index] = current_node->children[0];
@@ -890,10 +875,10 @@ void ph6_query (ph6_t* tree, ph6_query_t* query, void* data)
 }
 
 /*
- * query_set_internal does not need to convert external values in to internal points/keys
+ * query_set does not need to convert external values in to internal points/keys
  * so it needs to be its own function
  */
-static void query_set_internal (ph6_t* tree, ph6_query_t* query, ph6_point_t* min, ph6_point_t* max, phtree_iteration_function_t function)
+void ph6_query_set (ph6_t* tree, ph6_query_t* query, ph6_point_t* min, ph6_point_t* max, phtree_iteration_function_t function)
 {
 	ph6_query_clear (query);
 
@@ -924,43 +909,15 @@ ph6_query_t ph6_query_create (ph6_t* tree, void* min, void* max, phtree_iteratio
 	return query;
 }
 
-void ph6_query_set (ph6_t* tree, ph6_query_t* query, void* min_in, void* max_in, phtree_iteration_function_t function)
+void ph6_query_box_set (ph6_t* tree, ph6_query_t* query, bool intersect, ph6_point_t* min_in, ph6_point_t* max_in, phtree_iteration_function_t function)
 {
 	if (!query)
 	{
 		return;
 	}
 
-	ph6_point_t min = {0};
-	ph6_point_t max = {0};
-
-	tree->convert_to_point (tree, &min, min_in);
-	tree->convert_to_point (tree, &max, max_in);
-
-	query_set_internal (tree, query, &min, &max, function);
-}
-
-void ph6_query_box_set (ph6_t* tree, ph6_query_t* query, bool intersect, void* min_in, void* max_in, phtree_iteration_function_t function)
-{
-	if (!query)
-	{
-		return;
-	}
-
-	ph6_point_t min = {0};
-	ph6_point_t max = {0};
-
-	if (!tree->convert_to_box_point)
-	{
-		query->min = min;
-		query->max = max;
-		query->function = function;
-
-		return;
-	}
-
-	tree->convert_to_box_point (tree, &min, min_in);
-	tree->convert_to_box_point (tree, &max, max_in);
+	ph6_point_t min = *min_in;
+	ph6_point_t max = *max_in;
 
 	if (intersect)
 	{
@@ -975,10 +932,10 @@ void ph6_query_box_set (ph6_t* tree, ph6_query_t* query, bool intersect, void* m
 		}
 	}
 
-	query_set_internal (tree, query, &min, &max, function);
+	ph6_query_set (tree, query, &min, &max, function);
 }
 
-void ph6_query_box_point_set (ph6_t* tree, ph6_query_t* query, void* point, phtree_iteration_function_t function)
+void ph6_query_box_point_set (ph6_t* tree, ph6_query_t* query, ph6_point_t* point, phtree_iteration_function_t function)
 {
 	ph6_query_box_set (tree, query, true, point, point, function);
 }
@@ -998,23 +955,23 @@ void ph6_query_clear (ph6_query_t* query)
 }
 
 /*
- * convert input values to tree keys and set the point's values accordingly
+ * convenience function for setting the values of a ph6_point_t
  */
-void ph6_point_set (ph6_t* tree, ph6_point_t* point, void* a, void* b, void* c, void* d, void* e, void* f)
+void ph6_point_set (ph6_point_t* point, phtree_key_t a, phtree_key_t b, phtree_key_t c, phtree_key_t d, phtree_key_t e, phtree_key_t f)
 {
-	point->values[0] = tree->convert_to_key (a);
-	point->values[1] = tree->convert_to_key (b);
-	point->values[2] = tree->convert_to_key (c);
-	point->values[3] = tree->convert_to_key (d);
-	point->values[4] = tree->convert_to_key (e);
-	point->values[5] = tree->convert_to_key (f);
+	point->values[0] = a;
+	point->values[1] = b;
+	point->values[2] = c;
+	point->values[3] = d;
+	point->values[4] = e;
+	point->values[5] = f;
 }
 
-void ph6_point_box_set (ph6_t* tree, ph6_point_t* point, void* a, void* b, void* c)
+void ph6_point_box_set (ph6_point_t* point, phtree_key_t a, phtree_key_t b, phtree_key_t c)
 {
-	point->values[0] = tree->convert_to_key (a);
-	point->values[1] = tree->convert_to_key (b);
-	point->values[2] = tree->convert_to_key (c);
+	point->values[0] = a;
+	point->values[1] = b;
+	point->values[2] = c;
 
 	// this could be cleaner
 	// 	but we're doing it this way to work with the current template generation system

@@ -507,17 +507,13 @@ static void entry_free (ph1_t* tree, ph1_node_t* node)
 void ph1_initialize (
 	ph1_t* tree,
 	void* (*element_create) (void* input),
-	void (*element_destroy) (void*),
-	phtree_key_t (*convert_to_key) (void* input),
-	void (*convert_to_point) (ph1_t* tree, ph1_point_t* out, void* input))
+	void (*element_destroy) (void*))
 {
 	ph1_point_t empty_point = {{0}};
 	node_initialize (&tree->root, 0, PHTREE_DEPTH - 1, &empty_point);
 
 	tree->element_create = element_create;
 	tree->element_destroy = element_destroy;
-	tree->convert_to_key = convert_to_key;
-	tree->convert_to_point = convert_to_point;
 }
 
 /*
@@ -525,12 +521,10 @@ void ph1_initialize (
  */
 ph1_t ph1_create (
 	void* (*element_create) (void* input),
-	void (*element_destroy) (void* element),
-	phtree_key_t (*convert_to_key) (void* input),
-	void (*convert_to_point) (ph1_t* tree, ph1_point_t* out, void* input))
+	void (*element_destroy) (void* element))
 {
 	ph1_t tree;
-	ph1_initialize (&tree, element_create, element_destroy, convert_to_key, convert_to_point);
+	ph1_initialize (&tree, element_create, element_destroy);
 
 	return tree;
 }
@@ -625,23 +619,21 @@ void ph1_for_each (ph1_t* tree, phtree_iteration_function_t function, void* data
 	}
 }
 
-void* ph1_insert (ph1_t* tree, void* index)
+void* ph1_insert (ph1_t* tree, ph1_point_t* index, void* element)
 {
-	ph1_point_t point;
-	tree->convert_to_point (tree, &point, index);
 	ph1_node_t* current_node = &tree->root;
 
 	while (!phtree_node_is_leaf (current_node))
 	{
-		current_node = node_add (current_node, &point);
+		current_node = node_add (current_node, index);
 	}
 
-	int offset = child_index (current_node, calculate_hypercube_address (&point, current_node));
+	int offset = child_index (current_node, calculate_hypercube_address (index, current_node));
 	ph1_node_t* entry = current_node->children + offset;
 
 	if (!entry->children)
 	{
-		entry->children = tree->element_create (index);
+		entry->children = tree->element_create (element);
 	}
 
 	return entry->children;
@@ -683,11 +675,9 @@ ph1_node_t* ph1_find_entry (ph1_t* tree, ph1_point_t* point)
  * find an element at a specific index
  * returns NULL if there is no element at the index
  */
-void* ph1_find (ph1_t* tree, void* index)
+void* ph1_find (ph1_t* tree, ph1_point_t* index)
 {
-	ph1_point_t point;
-	tree->convert_to_point (tree, &point, index);
-	ph1_node_t* entry = ph1_find_entry (tree, &point);
+	ph1_node_t* entry = ph1_find_entry (tree, index);
 
 	if (!entry)
 	{
@@ -731,10 +721,8 @@ void ph1_remove_entry (ph1_t* tree, ph1_node_t* node, hypercube_address_t addres
 	node->active_children &= ~(PHTREE_CHILD_FLAG << (CHILD_SHIFT - address));
 }
 
-void ph1_remove (ph1_t* tree, void* index)
+void ph1_remove (ph1_t* tree, ph1_point_t* point)
 {
-	ph1_point_t point;
-	tree->convert_to_point (tree, &point, index);
 	int stack_index = 0;
 	ph1_node_t* node_stack[PHTREE_DEPTH] = {0};
 	ph1_node_t* current_node = &tree->root;
@@ -742,7 +730,7 @@ void ph1_remove (ph1_t* tree, void* index)
 
 	while (!phtree_node_is_leaf (current_node))
 	{
-		address = calculate_hypercube_address (&point, current_node);
+		address = calculate_hypercube_address (point, current_node);
 
 		if (child_active (current_node, address))
 		{
@@ -757,7 +745,7 @@ void ph1_remove (ph1_t* tree, void* index)
 		}
 	}
 
-	ph1_remove_entry (tree, current_node, calculate_hypercube_address (&point, current_node));
+	ph1_remove_entry (tree, current_node, calculate_hypercube_address (point, current_node));
 
 	if (current_node->child_count == 0)
 	{
@@ -767,7 +755,7 @@ void ph1_remove (ph1_t* tree, void* index)
 
 		ph1_node_t* parent = node_stack[stack_index];
 
-		ph1_remove_child (parent, calculate_hypercube_address (&point, parent));
+		ph1_remove_child (parent, calculate_hypercube_address (point, parent));
 		stack_index--;
 
 		// node_stack[0] is root
@@ -788,7 +776,7 @@ void ph1_remove (ph1_t* tree, void* index)
 				break;
 			}
 
-			int index = child_index (parent, calculate_hypercube_address (&point, parent));
+			int index = child_index (parent, calculate_hypercube_address (point, parent));
 
 			// current_node->children[0] is the only child
 			parent->children[index] = current_node->children[0];
@@ -892,10 +880,10 @@ void ph1_query (ph1_t* tree, ph1_query_t* query, void* data)
 }
 
 /*
- * query_set_internal does not need to convert external values in to internal points/keys
+ * query_set does not need to convert external values in to internal points/keys
  * so it needs to be its own function
  */
-static void query_set_internal (ph1_t* tree, ph1_query_t* query, ph1_point_t* min, ph1_point_t* max, phtree_iteration_function_t function)
+void ph1_query_set (ph1_t* tree, ph1_query_t* query, ph1_point_t* min, ph1_point_t* max, phtree_iteration_function_t function)
 {
 	ph1_query_clear (query);
 
@@ -926,22 +914,6 @@ ph1_query_t ph1_query_create (ph1_t* tree, void* min, void* max, phtree_iteratio
 	return query;
 }
 
-void ph1_query_set (ph1_t* tree, ph1_query_t* query, void* min_in, void* max_in, phtree_iteration_function_t function)
-{
-	if (!query)
-	{
-		return;
-	}
-
-	ph1_point_t min = {0};
-	ph1_point_t max = {0};
-
-	tree->convert_to_point (tree, &min, min_in);
-	tree->convert_to_point (tree, &max, max_in);
-
-	query_set_internal (tree, query, &min, &max, function);
-}
-
 
 /*
  * clear a window query
@@ -958,11 +930,11 @@ void ph1_query_clear (ph1_query_t* query)
 }
 
 /*
- * convert input values to tree keys and set the point's values accordingly
+ * convenience function for setting the values of a ph1_point_t
  */
-void ph1_point_set (ph1_t* tree, ph1_point_t* point, void* a)
+void ph1_point_set (ph1_point_t* point, phtree_key_t a)
 {
-	point->values[0] = tree->convert_to_key (a);
+	point->values[0] = a;
 }
 
 

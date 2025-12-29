@@ -113,6 +113,7 @@ typedef struct {{prefix}}_t
 	 * user defined functions for handling user defined elements
 	 */
 	/*
+	 * required
 	 * element_create needs to allocate memory for an element
 	 * 	and set any default values
 	 *
@@ -126,25 +127,11 @@ typedef struct {{prefix}}_t
 	 */
 	void* (*element_create) (void* input);
 	/*
+	 * required
 	 * element_destroy needs to free any memory allocated for an element
 	 * 	including the element itself
 	 */
 	void (*element_destroy) (void* element);
-
-	phtree_key_t (*convert_to_key) (void* input);
-	/*
-	 * convert_to_point converts your arbitrary data (input)
-	 * 	to a spatial index which the phtree can use
-	 */
-	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* point_out, void* input);
-	{{#even}}
-	/*
-	 * convert_to_box_point converts your arbitrary data (input)
-	 * 	to a spatial index specifically useful in box queries
-	 * see {{prefix}}_query_box_set in the header file for more information
-	 */
-	void (*convert_to_box_point) ({{prefix}}_t* tree, {{prefix}}_point_t* point_out, void* input);
-	{{/even}}
 } {{prefix}}_t;
 
 typedef struct {{prefix}}_query_t
@@ -166,7 +153,7 @@ typedef struct {{prefix}}_query_t
  * 	if you want to declare and initialize a phtree in one line
  */
 /*
- * !! the following 4 functions are REQUIRED for the tree to work !!
+ * !! the following 2 functions are REQUIRED for the tree to work !!
  *
  * void* element_create ()
  * 	allocates and initializes your custom tree element object
@@ -181,50 +168,15 @@ typedef struct {{prefix}}_query_t
  *
  * void element_destory (void* element)
  * 	deallocates/frees whatever was allocated by element_create
- *
- * phtree_key_t convert_to_key (void* input)
- * 	converts input into a single phtree_key_t value
- * 	likely you will use this to convert a single number into a key
- *
- * void convert_to_point ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input)
- * 	convert your spatial data into a spatial index in the tree
- * 	likely you will be inputting an n-dimensional point into this
- * 		breaking up that point and passing it in to {{prefix}}_point_set
-{{#even}}
- *
- * convert_to_box_point is optional and can be set to NULL
- * if it is set to null
- * 	{{prefix}}_query_box_set will set the query to something unlikely to return any results
- *
- * void convert_to_box_point ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input)
- * 	convert input in to special points used for box queries
- * 	!! make sure to use {{prefix}}_point_box_set and not the regular {{prefix}}_point_set !!
-{{/even}}
  */
 {{prefix}}_t {{prefix}}_create (
 	void* (*element_create) (void* input),
-	void (*element_destroy) (void* element),
-	phtree_key_t (*convert_to_key) (void* input),
-{{^even}}
-	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input));
-{{/even}}
-{{#even}}
-	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input),
-	void (*convert_to_box_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input));
-{{/even}}
+	void (*element_destroy) (void* element));
 
 void {{prefix}}_initialize (
 	{{prefix}}_t* tree,
 	void* (*element_create) (void* input),
-	void (*element_destroy) (void*),
-	phtree_key_t (*convert_to_key) (void* input),
-{{^even}}
-	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input));
-{{/even}}
-{{#even}}
-	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input),
-	void (*convert_to_box_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input));
-{{/even}}
+	void (*element_destroy) (void*));
 
 /*
  * clear all entries/elements from the tree
@@ -245,18 +197,18 @@ void {{prefix}}_for_each ({{prefix}}_t* tree, phtree_iteration_function_t functi
  *
  * index is whatever you are using to determine the spatial index of what you are inserting
  */
-void* {{prefix}}_insert ({{prefix}}_t* tree, void* index);
+void* {{prefix}}_insert ({{prefix}}_t* tree, {{prefix}}_point_t* point, void* element);
 /*
  * find an element in the tree at index
  *
  * returns the element if it exists
  * returns NULL if the element does not exist
  */
-void* {{prefix}}_find ({{prefix}}_t* tree, void* index);
+void* {{prefix}}_find ({{prefix}}_t* tree, {{prefix}}_point_t* index);
 /*
  * remove an element from the tree
  */
-void {{prefix}}_remove ({{prefix}}_t* tree, void* index);
+void {{prefix}}_remove ({{prefix}}_t* tree, {{prefix}}_point_t* point);
 /*
  * check if the tree is empty
  *
@@ -281,7 +233,7 @@ void {{prefix}}_query ({{prefix}}_t* tree, {{prefix}}_query_t* query, void* data
  * 	if you want to declare and initialize a query in one line
  */
 {{prefix}}_query_t {{prefix}}_query_create ({{prefix}}_t* tree, void* min, void* max, phtree_iteration_function_t function);
-void {{prefix}}_query_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, void* min, void* max, phtree_iteration_function_t function);
+void {{prefix}}_query_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, {{prefix}}_point_t* min, {{prefix}}_point_t* max, phtree_iteration_function_t function);
 {{#even}}
 /*
  * box queries are only relevant in trees with an even number of dimensions
@@ -320,31 +272,33 @@ void {{prefix}}_query_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, void* 
  * set intersect to 'true' to include intersecting boxes
  * set intersect to 'false' to only include boxes entirely contained in the query box
  */
-void {{prefix}}_query_box_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, bool intersect, void* min, void* max, phtree_iteration_function_t function);
+void {{prefix}}_query_box_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, bool intersect, {{prefix}}_point_t* min, {{prefix}}_point_t* max, phtree_iteration_function_t function);
 
 /*
  * {{prefix}}_query_box_point_set is a convenience function
  * 	for querying a single lower dimensional point against higher dimensional boxes
  * you can do the same with regular {{prefix}}_query_box_set
  */
-void {{prefix}}_query_box_point_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, void* point, phtree_iteration_function_t function);
+void {{prefix}}_query_box_point_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, {{prefix}}_point_t* point, phtree_iteration_function_t function);
 {{/even}}
 void {{prefix}}_query_clear ({{prefix}}_query_t* query);
 
 /*
- * use this in your convert_to_point function
- * 	{{prefix}}_point_set calls tree->convert_to_key on each of the values passed in to it
- * 	so you should not call convert_to_key in your convert_to_point function
+ * convenience function for setting the values of a {{prefix}}_point_t
  */
-void {{prefix}}_point_set ({{prefix}}_t* tree, {{prefix}}_point_t* point, void* a{{#2d}}, void* b{{#3d}}, void* c{{#4d}}, void* d{{#5d}}, void* e{{#6d}}, void* f{{/6d}}{{/5d}}{{/4d}}{{/3d}}{{/2d}});
+void {{prefix}}_point_set ({{prefix}}_point_t* point, phtree_key_t a{{#2d}}, phtree_key_t b{{#3d}}, phtree_key_t c{{#4d}}, phtree_key_t d{{#5d}}, phtree_key_t e{{#6d}}, phtree_key_t f{{/6d}}{{/5d}}{{/4d}}{{/3d}}{{/2d}});
 {{#even}}
 /*
- * use this in your convert_to_box_point function
- * 
- * {{prefix}}_point_box_set only takes (DIMENSIONS / 2) inputs
- * 	as it is specifically used for querying lower dimensional boxes
+ * when treating a higher dimensional space as representing boxes
+ * 	a lower dimensional point will repeat itself
+ * 	for example:
+ * 		in a 4d space which represents boxes
+ * 			the 2d point (1, 2) would be represented as (1, 2, 1, 2) in the 4d space
+ *
+ * this function is a convenience to set a higher dimensional point
+ * 	using a lower dimensional set of keys
  */
-void {{prefix}}_point_box_set ({{prefix}}_t* tree, {{prefix}}_point_t* point, void* a{{#4d}}, void* b{{#6d}}, void* c{{/6d}}{{/4d}});
+void {{prefix}}_point_box_set ({{prefix}}_point_t* point, phtree_key_t a{{#4d}}, phtree_key_t b{{#6d}}, phtree_key_t c{{/6d}}{{/4d}});
 {{/even}}
 
 #endif

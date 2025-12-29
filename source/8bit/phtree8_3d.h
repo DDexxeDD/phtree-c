@@ -113,6 +113,7 @@ typedef struct ph3_t
 	 * user defined functions for handling user defined elements
 	 */
 	/*
+	 * required
 	 * element_create needs to allocate memory for an element
 	 * 	and set any default values
 	 *
@@ -126,17 +127,11 @@ typedef struct ph3_t
 	 */
 	void* (*element_create) (void* input);
 	/*
+	 * required
 	 * element_destroy needs to free any memory allocated for an element
 	 * 	including the element itself
 	 */
 	void (*element_destroy) (void* element);
-
-	phtree_key_t (*convert_to_key) (void* input);
-	/*
-	 * convert_to_point converts your arbitrary data (input)
-	 * 	to a spatial index which the phtree can use
-	 */
-	void (*convert_to_point) (ph3_t* tree, ph3_point_t* point_out, void* input);
 } ph3_t;
 
 typedef struct ph3_query_t
@@ -158,7 +153,7 @@ typedef struct ph3_query_t
  * 	if you want to declare and initialize a phtree in one line
  */
 /*
- * !! the following 4 functions are REQUIRED for the tree to work !!
+ * !! the following 2 functions are REQUIRED for the tree to work !!
  *
  * void* element_create ()
  * 	allocates and initializes your custom tree element object
@@ -173,28 +168,15 @@ typedef struct ph3_query_t
  *
  * void element_destory (void* element)
  * 	deallocates/frees whatever was allocated by element_create
- *
- * phtree_key_t convert_to_key (void* input)
- * 	converts input into a single phtree_key_t value
- * 	likely you will use this to convert a single number into a key
- *
- * void convert_to_point (ph3_t* tree, ph3_point_t* out, void* input)
- * 	convert your spatial data into a spatial index in the tree
- * 	likely you will be inputting an n-dimensional point into this
- * 		breaking up that point and passing it in to ph3_point_set
  */
 ph3_t ph3_create (
 	void* (*element_create) (void* input),
-	void (*element_destroy) (void* element),
-	phtree_key_t (*convert_to_key) (void* input),
-	void (*convert_to_point) (ph3_t* tree, ph3_point_t* out, void* input));
+	void (*element_destroy) (void* element));
 
 void ph3_initialize (
 	ph3_t* tree,
 	void* (*element_create) (void* input),
-	void (*element_destroy) (void*),
-	phtree_key_t (*convert_to_key) (void* input),
-	void (*convert_to_point) (ph3_t* tree, ph3_point_t* out, void* input));
+	void (*element_destroy) (void*));
 
 /*
  * clear all entries/elements from the tree
@@ -215,18 +197,18 @@ void ph3_for_each (ph3_t* tree, phtree_iteration_function_t function, void* data
  *
  * index is whatever you are using to determine the spatial index of what you are inserting
  */
-void* ph3_insert (ph3_t* tree, void* index);
+void* ph3_insert (ph3_t* tree, ph3_point_t* point, void* element);
 /*
  * find an element in the tree at index
  *
  * returns the element if it exists
  * returns NULL if the element does not exist
  */
-void* ph3_find (ph3_t* tree, void* index);
+void* ph3_find (ph3_t* tree, ph3_point_t* index);
 /*
  * remove an element from the tree
  */
-void ph3_remove (ph3_t* tree, void* index);
+void ph3_remove (ph3_t* tree, ph3_point_t* point);
 /*
  * check if the tree is empty
  *
@@ -251,14 +233,12 @@ void ph3_query (ph3_t* tree, ph3_query_t* query, void* data);
  * 	if you want to declare and initialize a query in one line
  */
 ph3_query_t ph3_query_create (ph3_t* tree, void* min, void* max, phtree_iteration_function_t function);
-void ph3_query_set (ph3_t* tree, ph3_query_t* query, void* min, void* max, phtree_iteration_function_t function);
+void ph3_query_set (ph3_t* tree, ph3_query_t* query, ph3_point_t* min, ph3_point_t* max, phtree_iteration_function_t function);
 void ph3_query_clear (ph3_query_t* query);
 
 /*
- * use this in your convert_to_point function
- * 	ph3_point_set calls tree->convert_to_key on each of the values passed in to it
- * 	so you should not call convert_to_key in your convert_to_point function
+ * convenience function for setting the values of a ph3_point_t
  */
-void ph3_point_set (ph3_t* tree, ph3_point_t* point, void* a, void* b, void* c);
+void ph3_point_set (ph3_point_t* point, phtree_key_t a, phtree_key_t b, phtree_key_t c);
 
 #endif

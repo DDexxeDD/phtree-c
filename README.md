@@ -4,9 +4,9 @@ A C implementation of a [PH-Tree](https://tzaeschke.github.io/phtree-site/).  A 
 
 This is a single map implementation which supports 8, 16, 32, or 64 bit widths.  Being a single map means only 1 element is stored at each index.  However, you define what an element is, so you can store as much and whatever data you want in an element (such as collections, which will turn this into a multi map).
 
-The dimensionality of the phtrees here are hardcoded.  This library supports 1-6 dimensions.  Higher dimensionality is possible with ph-trees, but this library is not suited for them.  Higher dimensionality than 6 requires internal structures and systems which this implementation does not have.  Attempting to generate phtrees with more than 6 dimensions will create broken code, do not generate phtrees with more than 6 dimenions. 
+The dimensionality of the phtrees here are hardcoded.  This library supports 1-6 dimensions.  While PH-Trees can support higher dimensionality than 6, this requires internal structures and systems which this implementation does not have.  Attempting to generate phtrees with more than 6 dimensions will create broken code.  Do not generate phtrees with more than 6 dimenions. 
 
-This library is designed to be fairly generic, which means there are a lot of void pointers being passed around.  Pay attention to what you are passing in to phtree functions and how you cast what you get out.
+This library is designed to have the core functionality of a PH-Tree and nothing else.  You will need to wrap most or all of the functionality provided, or directly change the functionality provided.
 
 Be aware that while this implementation supports 8, 16, 32, and 64 bit widths for the tree, the bit counting functions used internally are all 64 bit.  This library will require your environment to support 64 bit integers.
 
@@ -33,14 +33,16 @@ There is also a [PH-Tree Discord](https://discord.gg/YmJTWYHPCA) server if you a
 
 ## About the Design
 
-Why templates and a bunch of bit/dimensionality specific files?  Because supporting arbitrary bit widths and dimensionality in a single data structure would require much more complexity and overhead.  You probably know what you need/want for your project, all of that complexity and overhead isn't going to help you any, its just going to slow you down.  So the complexity is rolled into the templates and you get a tighter, more efficient, more hackable tree for your project.
+Why templates and a bunch of bit/dimensionality specific files?  Because supporting arbitrary bit widths and dimensionality in a single data structure would require much more complexity and overhead.  You should know what you need/want for your project, all of that complexity and overhead isn't going to help you any, its just going to slow you down.  So the complexity is rolled into the templates and you get a tighter, more efficient, more hackable tree for your project.
 
-Please note that while internal tree data types are publicly defined, you **should not** be directly touching anything inside of them, unless you are specifically changing or adding to the functionality of the tree.
+This library is designed to provide only the most core functionality of a PH-Tree.  You will need to wrap most or all of the functionality provided for your use.  See the [demos](https://github.com/DDexxeDD/phtree-c/blob/main/examples) for examples of how to use this library.
+
+As wrapping or directly changing this library is _expected_, internal tree data types are publicly defined.
 
 
 ## Simple Usage
 
-Best practice for using this library is probably to wrap most/all of the tree functionality with your own functions, the demos do this with most functions... pay attention to the demos.
+Best practice for using this library is to wrap most/all of the tree functionality with your own functions, the [demos](https://github.com/DDexxeDD/phtree-c/blob/main/examples) do this with most functions... pay attention to the demos.
 
 The phtree source files are in the `source` folder.
 
@@ -64,7 +66,8 @@ You can have any combination of dimensionalities of the same bit width in your p
 1. The structure/element you want to store at each index
 2. A function for creating/allocating one of those elements
 3. A function for destroying/deallocating one of those elements
-4. A function for converting a user defined value to a `phtree_key_t`, generic converters for ints, floats, and doubles are provided
+4. A function for converting a user defined value to a `phtree_key_t`
+	generic converters for ints, and floats are provided in [reference_to_key_functions.c](https://github.com/DDexxeDD/phtree-c/blob/main/source/reference_to_key_functions.c)
 5. A function for converting a user defined type to a `phtree_point_t`
 6. Function(s) for what to do when querying or iterating the tree.
 
@@ -84,9 +87,11 @@ The tree will use user defined functions to allocate and deallocate these elemen
 
 `void* element_create (void* input);`
 
-This function will need to allocate and initialize an element.  It should return a pointer to the allocated element.
+This function will need to allocate and initialize an element.  It must return a pointer to the allocated element.
 
-When inserting something in to the tree which creates a new element, input will be whatever you passed in to the insert function.  See the [2d spatial hash demo](https://github.com/DDexxeDD/phtree-c/blob/main/examples/demo_2d_spatial_hash.c) for an example of this being used.  If initializing your element requires more data than the initial object you are creating it for has, you will need to use the pointer returned by the insert function to finish initialization.
+When inserting something in to the tree which creates a new element, input will be whatever you passed in to the insert function.  See the [2d spatial hash demo](https://github.com/DDexxeDD/phtree-c/blob/main/examples/demo_2d_spatial_hash.c) for an example of this being used.
+
+Depending on your element, initializing an element may not be entirely possible inside of the element_create function.  This is one of the reasons your element_create function needs to return a pointer to the element which was just created, so you can finish element creation outside of the element_create function.
 
 ### Define a function to deallocate an element
 
@@ -96,22 +101,15 @@ This function will need to deallocate anything in the element that needs to be d
 
 ### Define a function to convert a single value to a phtree_key_t
 
-`phtree_key_t convert_to_key (void* input);`
-
-This function needs to convert whatever is passed in to it (likely an integer or float), into a single phtree_key_t value.
+This function needs to convert whatever is passed in to it (such as an integer or float), into a single phtree_key_t value.
 
 There are reference implementations for converting 32 bit signed integers and 32 bit floating point numbers to 32 bit phtree keys provided in [reference_to_key_functions.c](https://github.com/DDexxeDD/phtree-c/blob/main/source/reference_to_key_functions.c) .
 
 ### Define a function to convert a more complex type into a tree point
 
-`void convert_to_point (tree_t* tree, point* out, void* input)`
-
-(tree and point will be the types specific to your chosen dimensionality)
-This function needs to convert whatever your indexes are based on, into a point in the tree.  You should use your chosen tree's point_set function to set the 'out' argument.  The point_set function internally calls the tree's convert_to_key function on each of the values passed in to it, so you do not need to convert values in the convert_to_point function.
+This function needs to convert whatever your indexes are based on, into a point in the tree.  You can use your chosen tree's point_set function to set the 'out' argument.
 
 ### (Optional) Define a function to convert a user defined type into a tree point of half dimensions
-
-`void convert_to_box_point (tree_t* tree, point* out, void* input)`
 
 See [Indexing Axis Aligned Boxes](#indexing-axis-aligned-boxes) for an explanation of using phtrees for boxes.
 
@@ -152,6 +150,8 @@ Window queries are normal point to point range queries.  In a window query you s
 
 Box queries are used in even dimensional trees in which points are being used to represent lower dimensional bounding boxes.  If you are using a 6d tree to index 3d cuboids, you would use a box query to find those points.  The same goes for using 4d trees to index 2d boxes and 2d trees to index 1d line segments.
 
+You can use any higher dimensional tree to represent even numbered lower dimensional boxes.  For example you could use a 6d tree to represent 4d boxes which have 2 other dimensions attached to them.  This functionality is not supported in this library, you will have to write it yourself.
+
 
 ## Building the examples
 
@@ -167,7 +167,7 @@ meson compile -C build
 This will create the '`build`' directory.
 The executables will be in the `build` directory.
 
-The demos have only been tested on linux, but they should work on other platforms.
+The demos have only been tested on linux.
 
 
 ## Notes

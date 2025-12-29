@@ -2,12 +2,15 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
-#include <math.h>
 
 #include "cvector.h"
 
 #include "source/32bit/phtree32_3d.h"
 #include "source/32bit/phtree32_6d.h"
+
+// TODO
+// 	need to finish element create
+// 		whatever is being passed in is the thing we need to get info from
 
 /*
  * n-dimensional boxes can be stored as 2*n-dimensional points
@@ -60,27 +63,84 @@ typedef struct
 	char id;
 } element_simple_t;
 
-void convert_to_point_3d (ph3_t* tree, ph3_point_t* out, void* input)
+// convert a float to a phtree_key_t
+phtree_key_t float_to_key (float input)
 {
-	vector3_t* vector = (vector3_t*) input;
+	phtree_key_t bits;
 
-	ph3_point_set (tree, out, &vector->x, &vector->y, &vector->z);
+	memcpy (&bits, &input, sizeof (phtree_key_t));
+
+	// if the float is negative
+	// 	convert to two's complement (~bits + 1)
+	// 	then & with (PHTREE32_KEY_MAX >> 1)
+	// 		which will convert -0 to 0
+	if (bits & PHTREE32_SIGN_BIT)
+	{
+		bits = ((~bits) + 1) & (PHTREE32_KEY_MAX >> 1);
+	}
+	else
+	{
+		// if the float is positive
+		// 	all we need to do is flip the sign bit to 1
+		bits |= PHTREE32_SIGN_BIT;
+	}
+
+	return bits;
 }
 
-void convert_to_point_6d (ph6_t* tree, ph6_point_t* out, void* index)
+// convert a point3d_t to a ph3_point_t
+ph3_point_t point3d_to_point_3d (point3d_t* point3d)
 {
-	box3d_t* box = index;
+	ph3_point_t point;
 
-	ph6_point_set (tree, out, &box->min.x, &box->min.y, &box->min.z, &box->max.x, &box->max.y, &box->max.z);
+	ph3_point_set (&point, float_to_key (point3d->position.x), float_to_key (point3d->position.y), float_to_key (point3d->position.z));
+
+	return point;
 }
 
-void convert_to_point_box_6d (ph6_t* tree, ph6_point_t* out, void* index)
+// convert a point3d_t to a ph3_point_t
+ph3_point_t vector3_to_point_3d (vector3_t* vector)
 {
-	vector3_t* vector = index;
+	ph3_point_t point;
 
-	ph6_point_box_set (tree, out, &vector->x, &vector->y, &vector->z);
+	ph3_point_set (&point, float_to_key (vector->x), float_to_key (vector->y), float_to_key (vector->z));
+
+	return point;
 }
 
+ph6_point_t box3d_to_point_6d (box3d_t* box)
+{
+	ph6_point_t point;
+
+	ph6_point_set (&point, float_to_key (box->min.x), float_to_key (box->min.y), float_to_key (box->min.z), float_to_key (box->max.x), float_to_key (box->max.y), float_to_key (box->max.z));
+
+	return point;
+}
+
+// convert point3d to ph6_point
+ph6_point_t point3d_to_point_6d (point3d_t* point3d)
+{
+	ph6_point_t point;
+
+	ph6_point_box_set (&point, float_to_key (point3d->position.x), float_to_key (point3d->position.y), float_to_key (point3d->position.z));
+
+	return point;
+}
+
+// convert vector3 to ph6_point
+ph6_point_t vector3_to_point_6d (vector3_t* vector)
+{
+	ph6_point_t point;
+
+	ph6_point_box_set (&point, float_to_key (vector->x), float_to_key (vector->y), float_to_key (vector->z));
+
+	return point;
+}
+
+// since this is being used in different trees
+// 	which are indexing different objects (point3d_t and box3d_t)
+// we dont use the argument being passed in for anything
+// setting the newly created element's id value happens outside of this create function
 void* element_simple_create (void* unused)
 {
 	element_simple_t* new_element = calloc (1, sizeof (*new_element));
@@ -115,43 +175,26 @@ void query_cache_element (void* element_in, void* data)
 	cvector_push_back (*list, element);
 }
 
-void insert_point_3d (ph3_t* tree, point3d_t* point)
+// insert a point3d into a ph3
+element_simple_t* insert_point_3d (ph3_t* tree, point3d_t* point3d)
 {
-	element_simple_t* element = ph3_insert (tree, &point->position);
-	element->id = point->id;
+	ph3_point_t point = point3d_to_point_3d (point3d);
+	element_simple_t* element = ph3_insert (tree, &point, point3d);
+	element->id = point3d->id;
 
-	printf ("insert point %c (%.1f, %.1f, %.1f)\n", point->id, point->position.x, point->position.y, point->position.z);
+	printf ("insert point %c (%.1f, %.1f, %.1f)\n", point3d->id, point3d->position.x, point3d->position.y, point3d->position.z);
+
+	return element;
 }
 
-void insert_box_3d (ph6_t* tree, box3d_t* box)
+// insert a box3d into a ph6
+void insert_box_6d (ph6_t* tree, box3d_t* box)
 {
-	element_simple_t* element = ph6_insert (tree, box);
+	ph6_point_t point = box3d_to_point_6d (box);
+	// because of the way element_simple_create works
+	// 	we dont actually need to pass anything to the third argument of ph6_insert
+	element_simple_t* element = ph6_insert (tree, &point, NULL);
 	element->id = box->id;
-}
-
-// phtree_float_to_key expects input to be a pointer to a float
-phtree_key_t phtree_float_to_key (void* input)
-{
-	phtree_key_t bits;
-
-	memcpy (&bits, input, sizeof (phtree_key_t));
-
-	// if the float is negative
-	// 	convert to two's complement (~bits + 1)
-	// 	then & with (PHTREE32_KEY_MAX >> 1)
-	// 		which will convert -0 to 0
-	if (bits & PHTREE32_SIGN_BIT)
-	{
-		bits = ((~bits) + 1) & (PHTREE32_KEY_MAX >> 1);
-	}
-	else
-	{
-		// if the float is positive
-		// 	all we need to do is flip the sign bit to 1
-		bits |= PHTREE32_SIGN_BIT;
-	}
-
-	return bits;
 }
 
 int main ()
@@ -160,9 +203,7 @@ int main ()
 	ph3_initialize (
 		tree3d,
 		element_simple_create,
-		element_simple_destroy,
-		phtree_float_to_key,
-		convert_to_point_3d);
+		element_simple_destroy);
 
 	box3d_t box_a = {{-10.0f, -10.0f, -10.0f}, {10.0f, 10.0f, 10.0f}, 'a'};
 	box3d_t box_b = {{0.0f, 0.0f, 0.0f}, {20.0f, 20.0f, 20.0f}, 'b'};
@@ -186,8 +227,10 @@ int main ()
 	ph3_for_each (tree3d, element_simple_print, NULL);
 	printf ("\n\n");
 
+	ph3_point_t query3d_min = vector3_to_point_3d (&box_a.min);
+	ph3_point_t query3d_max = vector3_to_point_3d (&box_a.max);
 	ph3_query_t query3d;
-	ph3_query_set (tree3d, &query3d, &box_a.min, &box_a.max, query_cache_element);
+	ph3_query_set (tree3d, &query3d, &query3d_min, &query3d_max, query_cache_element);
 
 	cvector (element_simple_t*) query_cache = NULL;
 	cvector_init (query_cache, 2, NULL);
@@ -203,7 +246,9 @@ int main ()
 	cvector_clear (query_cache);
 
 	printf ("points in range (%.1f, %.1f, %.1f) to (%.1f, %.1f, %.1f)\n", box_b.min.x, box_b.min.y, box_b.min.z, box_b.max.x, box_b.max.y, box_b.max.z);
-	ph3_query_set (tree3d, &query3d, &box_b.min, &box_b.max, query_cache_element);
+	query3d_min = vector3_to_point_3d (&box_b.min);
+	query3d_max = vector3_to_point_3d (&box_b.max);
+	ph3_query_set (tree3d, &query3d, &query3d_min, &query3d_max, query_cache_element);
 	ph3_query (tree3d, &query3d, &query_cache);
 	for (int iter = 0; iter < cvector_size (query_cache); iter++)
 	{
@@ -221,21 +266,20 @@ int main ()
 	ph6_initialize (
 		tree6d,
 		element_simple_create,
-		element_simple_destroy,
-		phtree_float_to_key,
-		convert_to_point_6d,
-		convert_to_point_box_6d);
+		element_simple_destroy);
 
-	insert_box_3d (tree6d, &box_a);
-	insert_box_3d (tree6d, &box_b);
+	insert_box_6d (tree6d, &box_a);
+	insert_box_6d (tree6d, &box_b);
 
 	printf ("boxes in 6d tree:\n  ");
 	ph6_for_each (tree6d, element_simple_print, NULL);
 	printf ("\n\n");
 
+	ph6_point_t query6d_min = vector3_to_point_6d (&box_c.min);
+	ph6_point_t query6d_max = vector3_to_point_6d (&box_c.max);
 	ph6_query_t query6d;
 
-	ph6_query_box_set (tree6d, &query6d, false, &box_c.min, &box_c.max, query_cache_element);
+	ph6_query_box_set (tree6d, &query6d, false, &query6d_min, &query6d_max, query_cache_element);
 	ph6_query (tree6d, &query6d, &query_cache);
 
 	printf ("boxes contained in box {(%.1f, %.1f, %.1f), (%.1f, %.1f, %.1f)}\n", box_c.min.x, box_c.min.y, box_c.min.z, box_c.max.x, box_c.max.y, box_c.max.z);
@@ -247,7 +291,7 @@ int main ()
 
 	cvector_clear (query_cache);
 
-	ph6_query_box_set (tree6d, &query6d, true, &box_c.min, &box_c.max, query_cache_element);
+	ph6_query_box_set (tree6d, &query6d, true, &query6d_min, &query6d_max, query_cache_element);
 	ph6_query (tree6d, &query6d, &query_cache);
 
 	printf ("boxes intersecting box {(%.1f, %.1f, %.1f), (%.1f, %.1f, %.1f)}\n",  box_c.min.x, box_c.min.y, box_c.min.z, box_c.max.x, box_c.max.y, box_c.max.z);
@@ -259,7 +303,8 @@ int main ()
 
 	cvector_clear (query_cache);
 
-	ph6_query_box_point_set (tree6d, &query6d, &point_b.position, query_cache_element);
+	ph6_point_t box_point = point3d_to_point_6d (&point_b);
+	ph6_query_box_point_set (tree6d, &query6d, &box_point, query_cache_element);
 	ph6_query (tree6d, &query6d, &query_cache);
 
 	printf ("boxes intersecting point %c (%.1f, %.1f, %.1f)\n", point_b.id, point_b.position.x, point_b.position.y, point_b.position.z);
@@ -271,7 +316,8 @@ int main ()
 
 	cvector_clear (query_cache);
 
-	ph6_query_box_point_set (tree6d, &query6d, &point_a.position, query_cache_element);
+	box_point = point3d_to_point_6d (&point_a);
+	ph6_query_box_point_set (tree6d, &query6d, &box_point, query_cache_element);
 	ph6_query (tree6d, &query6d, &query_cache);
 
 	printf ("boxes intersecting point %c (%.1f, %.1f, %.1f)\n", point_a.id, point_a.position.x, point_a.position.y, point_a.position.z);

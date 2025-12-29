@@ -520,15 +520,7 @@ static void entry_free ({{prefix}}_t* tree, {{prefix}}_node_t* node)
 void {{prefix}}_initialize (
 	{{prefix}}_t* tree,
 	void* (*element_create) (void* input),
-	void (*element_destroy) (void*),
-	phtree_key_t (*convert_to_key) (void* input),
-{{^even}}
-	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input))
-{{/even}}
-{{#even}}
-	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input),
-	void (*convert_to_box_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input))
-{{/even}}
+	void (*element_destroy) (void*))
 {
 	{{! change delimiters because of double braces in declaration }}
 	{{=<% %>=}}
@@ -538,11 +530,6 @@ void {{prefix}}_initialize (
 
 	tree->element_create = element_create;
 	tree->element_destroy = element_destroy;
-	tree->convert_to_key = convert_to_key;
-	tree->convert_to_point = convert_to_point;
-{{#even}}
-	tree->convert_to_box_point = convert_to_box_point;
-{{/even}}
 }
 
 /*
@@ -550,18 +537,10 @@ void {{prefix}}_initialize (
  */
 {{prefix}}_t {{prefix}}_create (
 	void* (*element_create) (void* input),
-	void (*element_destroy) (void* element),
-	phtree_key_t (*convert_to_key) (void* input),
-{{^even}}
-	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input))
-{{/even}}
-{{#even}}
-	void (*convert_to_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input),
-	void (*convert_to_box_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input))
-{{/even}}
+	void (*element_destroy) (void* element))
 {
 	{{prefix}}_t tree;
-	{{prefix}}_initialize (&tree, element_create, element_destroy, convert_to_key, convert_to_point{{#even}}, convert_to_box_point{{/even}});
+	{{prefix}}_initialize (&tree, element_create, element_destroy);
 
 	return tree;
 }
@@ -656,23 +635,21 @@ void {{prefix}}_for_each ({{prefix}}_t* tree, phtree_iteration_function_t functi
 	}
 }
 
-void* {{prefix}}_insert ({{prefix}}_t* tree, void* index)
+void* {{prefix}}_insert ({{prefix}}_t* tree, {{prefix}}_point_t* index, void* element)
 {
-	{{prefix}}_point_t point;
-	tree->convert_to_point (tree, &point, index);
 	{{prefix}}_node_t* current_node = &tree->root;
 
 	while (!phtree_node_is_leaf (current_node))
 	{
-		current_node = node_add (current_node, &point);
+		current_node = node_add (current_node, index);
 	}
 
-	int offset = child_index (current_node, calculate_hypercube_address (&point, current_node));
+	int offset = child_index (current_node, calculate_hypercube_address (index, current_node));
 	{{prefix}}_node_t* entry = current_node->children + offset;
 
 	if (!entry->children)
 	{
-		entry->children = tree->element_create (index);
+		entry->children = tree->element_create (element);
 	}
 
 	return entry->children;
@@ -714,11 +691,9 @@ void* {{prefix}}_insert ({{prefix}}_t* tree, void* index)
  * find an element at a specific index
  * returns NULL if there is no element at the index
  */
-void* {{prefix}}_find ({{prefix}}_t* tree, void* index)
+void* {{prefix}}_find ({{prefix}}_t* tree, {{prefix}}_point_t* index)
 {
-	{{prefix}}_point_t point;
-	tree->convert_to_point (tree, &point, index);
-	{{prefix}}_node_t* entry = {{prefix}}_find_entry (tree, &point);
+	{{prefix}}_node_t* entry = {{prefix}}_find_entry (tree, index);
 
 	if (!entry)
 	{
@@ -762,10 +737,8 @@ void {{prefix}}_remove_entry ({{prefix}}_t* tree, {{prefix}}_node_t* node, hyper
 	node->active_children &= ~(PHTREE_CHILD_FLAG << (CHILD_SHIFT - address));
 }
 
-void {{prefix}}_remove ({{prefix}}_t* tree, void* index)
+void {{prefix}}_remove ({{prefix}}_t* tree, {{prefix}}_point_t* point)
 {
-	{{prefix}}_point_t point;
-	tree->convert_to_point (tree, &point, index);
 	int stack_index = 0;
 	{{prefix}}_node_t* node_stack[PHTREE_DEPTH] = {0};
 	{{prefix}}_node_t* current_node = &tree->root;
@@ -773,7 +746,7 @@ void {{prefix}}_remove ({{prefix}}_t* tree, void* index)
 
 	while (!phtree_node_is_leaf (current_node))
 	{
-		address = calculate_hypercube_address (&point, current_node);
+		address = calculate_hypercube_address (point, current_node);
 
 		if (child_active (current_node, address))
 		{
@@ -788,7 +761,7 @@ void {{prefix}}_remove ({{prefix}}_t* tree, void* index)
 		}
 	}
 
-	{{prefix}}_remove_entry (tree, current_node, calculate_hypercube_address (&point, current_node));
+	{{prefix}}_remove_entry (tree, current_node, calculate_hypercube_address (point, current_node));
 
 	if (current_node->child_count == 0)
 	{
@@ -798,7 +771,7 @@ void {{prefix}}_remove ({{prefix}}_t* tree, void* index)
 
 		{{prefix}}_node_t* parent = node_stack[stack_index];
 
-		{{prefix}}_remove_child (parent, calculate_hypercube_address (&point, parent));
+		{{prefix}}_remove_child (parent, calculate_hypercube_address (point, parent));
 		stack_index--;
 
 		// node_stack[0] is root
@@ -819,7 +792,7 @@ void {{prefix}}_remove ({{prefix}}_t* tree, void* index)
 				break;
 			}
 
-			int index = child_index (parent, calculate_hypercube_address (&point, parent));
+			int index = child_index (parent, calculate_hypercube_address (point, parent));
 
 			// current_node->children[0] is the only child
 			parent->children[index] = current_node->children[0];
@@ -923,10 +896,10 @@ void {{prefix}}_query ({{prefix}}_t* tree, {{prefix}}_query_t* query, void* data
 }
 
 /*
- * query_set_internal does not need to convert external values in to internal points/keys
+ * query_set does not need to convert external values in to internal points/keys
  * so it needs to be its own function
  */
-static void query_set_internal ({{prefix}}_t* tree, {{prefix}}_query_t* query, {{prefix}}_point_t* min, {{prefix}}_point_t* max, phtree_iteration_function_t function)
+void {{prefix}}_query_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, {{prefix}}_point_t* min, {{prefix}}_point_t* max, phtree_iteration_function_t function)
 {
 	{{prefix}}_query_clear (query);
 
@@ -957,44 +930,16 @@ static void query_set_internal ({{prefix}}_t* tree, {{prefix}}_query_t* query, {
 	return query;
 }
 
-void {{prefix}}_query_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, void* min_in, void* max_in, phtree_iteration_function_t function)
-{
-	if (!query)
-	{
-		return;
-	}
-
-	{{prefix}}_point_t min = {0};
-	{{prefix}}_point_t max = {0};
-
-	tree->convert_to_point (tree, &min, min_in);
-	tree->convert_to_point (tree, &max, max_in);
-
-	query_set_internal (tree, query, &min, &max, function);
-}
-
 {{#even}}
-void {{prefix}}_query_box_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, bool intersect, void* min_in, void* max_in, phtree_iteration_function_t function)
+void {{prefix}}_query_box_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, bool intersect, {{prefix}}_point_t* min_in, {{prefix}}_point_t* max_in, phtree_iteration_function_t function)
 {
 	if (!query)
 	{
 		return;
 	}
 
-	{{prefix}}_point_t min = {0};
-	{{prefix}}_point_t max = {0};
-
-	if (!tree->convert_to_box_point)
-	{
-		query->min = min;
-		query->max = max;
-		query->function = function;
-
-		return;
-	}
-
-	tree->convert_to_box_point (tree, &min, min_in);
-	tree->convert_to_box_point (tree, &max, max_in);
+	{{prefix}}_point_t min = *min_in;
+	{{prefix}}_point_t max = *max_in;
 
 	if (intersect)
 	{
@@ -1009,10 +954,10 @@ void {{prefix}}_query_box_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, bo
 		}
 	}
 
-	query_set_internal (tree, query, &min, &max, function);
+	{{prefix}}_query_set (tree, query, &min, &max, function);
 }
 
-void {{prefix}}_query_box_point_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, void* point, phtree_iteration_function_t function)
+void {{prefix}}_query_box_point_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, {{prefix}}_point_t* point, phtree_iteration_function_t function)
 {
 	{{prefix}}_query_box_set (tree, query, true, point, point, function);
 }
@@ -1033,21 +978,21 @@ void {{prefix}}_query_clear ({{prefix}}_query_t* query)
 }
 
 /*
- * convert input values to tree keys and set the point's values accordingly
+ * convenience function for setting the values of a {{prefix}}_point_t
  */
-void {{prefix}}_point_set ({{prefix}}_t* tree, {{prefix}}_point_t* point, void* a{{#2d}}, void* b{{#3d}}, void* c{{#4d}}, void* d{{#5d}}, void* e{{#6d}}, void* f{{/6d}}{{/5d}}{{/4d}}{{/3d}}{{/2d}})
+void {{prefix}}_point_set ({{prefix}}_point_t* point, phtree_key_t a{{#2d}}, phtree_key_t b{{#3d}}, phtree_key_t c{{#4d}}, phtree_key_t d{{#5d}}, phtree_key_t e{{#6d}}, phtree_key_t f{{/6d}}{{/5d}}{{/4d}}{{/3d}}{{/2d}})
 {
-	point->values[0] = tree->convert_to_key (a);
+	point->values[0] = a;
 	{{#2d}}
-	point->values[1] = tree->convert_to_key (b);
+	point->values[1] = b;
 	{{#3d}}
-	point->values[2] = tree->convert_to_key (c);
+	point->values[2] = c;
 	{{#4d}}
-	point->values[3] = tree->convert_to_key (d);
+	point->values[3] = d;
 	{{#5d}}
-	point->values[4] = tree->convert_to_key (e);
+	point->values[4] = e;
 	{{#6d}}
-	point->values[5] = tree->convert_to_key (f);
+	point->values[5] = f;
 	{{/6d}}
 	{{/5d}}
 	{{/4d}}
@@ -1056,13 +1001,13 @@ void {{prefix}}_point_set ({{prefix}}_t* tree, {{prefix}}_point_t* point, void* 
 }
 
 {{#even}}
-void {{prefix}}_point_box_set ({{prefix}}_t* tree, {{prefix}}_point_t* point, void* a{{#4d}}, void* b{{#6d}}, void* c{{/6d}}{{/4d}})
+void {{prefix}}_point_box_set ({{prefix}}_point_t* point, phtree_key_t a{{#4d}}, phtree_key_t b{{#6d}}, phtree_key_t c{{/6d}}{{/4d}})
 {
-	point->values[0] = tree->convert_to_key (a);
+	point->values[0] = a;
 	{{#4d}}
-	point->values[1] = tree->convert_to_key (b);
+	point->values[1] = b;
 	{{#6d}}
-	point->values[2] = tree->convert_to_key (c);
+	point->values[2] = c;
 	{{/6d}}
 	{{/4d}}
 

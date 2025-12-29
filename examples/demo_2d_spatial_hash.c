@@ -42,6 +42,16 @@ typedef struct
 	cvector (thing2d_t) things;
 } element_2d_t;
 
+phtree_key_t int32_to_key (int32_t input)
+{
+	phtree_key_t b = 0;
+
+	memcpy (&b, &input, sizeof (phtree_key_t));
+	b ^= PHTREE32_SIGN_BIT;  // flip sign bit
+
+	return b;
+}
+
 void* element_2d_create (void* input)
 {
 	element_2d_t* new_element = calloc (1, sizeof (*new_element));
@@ -68,13 +78,15 @@ void element_2d_destroy (void* element_in)
 	free (element);
 }
 
-void convert_to_point_2d (ph2_t* tree, ph2_point_t* out, void* input)
+ph2_point_t thing2d_to_point (thing2d_t* thing)
 {
-	thing2d_t* thing = (thing2d_t*) input;
-	int x = floorf (thing->position.x / 32);
-	int y = floorf (thing->position.y / 32);
+	int32_t x = floorf (thing->position.x / 32);
+	int32_t y = floorf (thing->position.y / 32);
+	ph2_point_t point;
 
-	ph2_point_set (tree, out, &x, &y);
+	ph2_point_set (&point, int32_to_key (x), int32_to_key (y));
+
+	return point;
 }
 
 void print_2d_thing (void* element_in, void* unused)
@@ -93,8 +105,9 @@ void find_2d (ph2_t* tree, thing2d_t* thing_to_find)
 {
 	printf ("find thing at {%f, %f}\n", thing_to_find->position.x, thing_to_find->position.y);
 
+	ph2_point_t point = thing2d_to_point (thing_to_find);
+	element_2d_t* bucket = ph2_find (tree, &point);
 	bool found = false;
-	element_2d_t* bucket = ph2_find (tree, thing_to_find);
 	if (bucket)
 	{
 		thing2d_t* thing = NULL;
@@ -128,17 +141,6 @@ void query_cache_2d (void* element_in, void* data)
 	cvector_push_back (*list, element);
 }
 
-// phtree_int32_to_key expects input to be a pointer to a signed 32 bit integer
-phtree_key_t phtree_int32_to_key (void* input)
-{
-	phtree_key_t b = 0;
-
-	memcpy (&b, input, sizeof (phtree_key_t));
-	b ^= PHTREE32_SIGN_BIT;  // flip sign bit
-
-	return b;
-}
-
 int main ()
 {
 	srand (time (NULL));
@@ -147,10 +149,7 @@ int main ()
 	ph2_initialize (
 		tree,
 		element_2d_create,
-		element_2d_destroy,
-		phtree_int32_to_key,
-		convert_to_point_2d,
-		NULL);  // convert_to_point_box is optional, and not relevant to this example
+		element_2d_destroy);
 
 	// keep a separate list of the things we are creating
 	// 	so we can easily query a thing we know exists later
@@ -168,7 +167,8 @@ int main ()
 		cvector_push_back (things, thing);
 
 		thing2d_t* new_thing = cvector_back (things);
-		element_2d_t* element = ph2_insert (tree, new_thing);
+		ph2_point_t point = thing2d_to_point (new_thing);
+		element_2d_t* element = ph2_insert (tree, &point, new_thing);
 
 		cvector_push_back (element->things, *new_thing);
 		new_id++;
@@ -187,15 +187,18 @@ int main ()
 	find_2d (tree, &(thing2d_t) {{100.0f, 100.0f}, 0});
 
 	printf ("\nremove thing %i\n", things[11].id);
-	ph2_remove (tree, &things[11]);
+	ph2_point_t remove_point = thing2d_to_point (&things[11]);
+	ph2_remove (tree, &remove_point);
 	printf ("find thing %i which we just removed\n", things[11].id);
 	find_2d (tree, &things[11]);
 
 	printf ("\nquery from {0.0, 0.0} to {64.0, 64.0}\n");
+	ph2_point_t query_min = thing2d_to_point (&(thing2d_t) {{0.0f, 0.0f}, 0});
+	ph2_point_t query_max = thing2d_to_point (&(thing2d_t) {{64.0f, 64.0f}, 0});
 	ph2_query_t query;
 	// set up a query for points in the +,+ quadrant
 	// 	hopefully rand generated some points there :D
-	ph2_query_set (tree, &query, &(thing2d_t) {{0.0f, 0.0f}, 0}, &(thing2d_t) {{64.0f, 64.0f}, 0}, query_cache_2d);
+	ph2_query_set (tree, &query, &query_min, &query_max, query_cache_2d);
 
 	// a cache for the elements our query finds
 	// !! if the tree changes after the cache is created (insertions/removals) !!

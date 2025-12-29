@@ -113,6 +113,7 @@ typedef struct ph6_t
 	 * user defined functions for handling user defined elements
 	 */
 	/*
+	 * required
 	 * element_create needs to allocate memory for an element
 	 * 	and set any default values
 	 *
@@ -126,23 +127,11 @@ typedef struct ph6_t
 	 */
 	void* (*element_create) (void* input);
 	/*
+	 * required
 	 * element_destroy needs to free any memory allocated for an element
 	 * 	including the element itself
 	 */
 	void (*element_destroy) (void* element);
-
-	phtree_key_t (*convert_to_key) (void* input);
-	/*
-	 * convert_to_point converts your arbitrary data (input)
-	 * 	to a spatial index which the phtree can use
-	 */
-	void (*convert_to_point) (ph6_t* tree, ph6_point_t* point_out, void* input);
-	/*
-	 * convert_to_box_point converts your arbitrary data (input)
-	 * 	to a spatial index specifically useful in box queries
-	 * see ph6_query_box_set in the header file for more information
-	 */
-	void (*convert_to_box_point) (ph6_t* tree, ph6_point_t* point_out, void* input);
 } ph6_t;
 
 typedef struct ph6_query_t
@@ -164,7 +153,7 @@ typedef struct ph6_query_t
  * 	if you want to declare and initialize a phtree in one line
  */
 /*
- * !! the following 4 functions are REQUIRED for the tree to work !!
+ * !! the following 2 functions are REQUIRED for the tree to work !!
  *
  * void* element_create ()
  * 	allocates and initializes your custom tree element object
@@ -179,38 +168,15 @@ typedef struct ph6_query_t
  *
  * void element_destory (void* element)
  * 	deallocates/frees whatever was allocated by element_create
- *
- * phtree_key_t convert_to_key (void* input)
- * 	converts input into a single phtree_key_t value
- * 	likely you will use this to convert a single number into a key
- *
- * void convert_to_point (ph6_t* tree, ph6_point_t* out, void* input)
- * 	convert your spatial data into a spatial index in the tree
- * 	likely you will be inputting an n-dimensional point into this
- * 		breaking up that point and passing it in to ph6_point_set
- *
- * convert_to_box_point is optional and can be set to NULL
- * if it is set to null
- * 	ph6_query_box_set will set the query to something unlikely to return any results
- *
- * void convert_to_box_point (ph6_t* tree, ph6_point_t* out, void* input)
- * 	convert input in to special points used for box queries
- * 	!! make sure to use ph6_point_box_set and not the regular ph6_point_set !!
  */
 ph6_t ph6_create (
 	void* (*element_create) (void* input),
-	void (*element_destroy) (void* element),
-	phtree_key_t (*convert_to_key) (void* input),
-	void (*convert_to_point) (ph6_t* tree, ph6_point_t* out, void* input),
-	void (*convert_to_box_point) (ph6_t* tree, ph6_point_t* out, void* input));
+	void (*element_destroy) (void* element));
 
 void ph6_initialize (
 	ph6_t* tree,
 	void* (*element_create) (void* input),
-	void (*element_destroy) (void*),
-	phtree_key_t (*convert_to_key) (void* input),
-	void (*convert_to_point) (ph6_t* tree, ph6_point_t* out, void* input),
-	void (*convert_to_box_point) (ph6_t* tree, ph6_point_t* out, void* input));
+	void (*element_destroy) (void*));
 
 /*
  * clear all entries/elements from the tree
@@ -231,18 +197,18 @@ void ph6_for_each (ph6_t* tree, phtree_iteration_function_t function, void* data
  *
  * index is whatever you are using to determine the spatial index of what you are inserting
  */
-void* ph6_insert (ph6_t* tree, void* index);
+void* ph6_insert (ph6_t* tree, ph6_point_t* point, void* element);
 /*
  * find an element in the tree at index
  *
  * returns the element if it exists
  * returns NULL if the element does not exist
  */
-void* ph6_find (ph6_t* tree, void* index);
+void* ph6_find (ph6_t* tree, ph6_point_t* index);
 /*
  * remove an element from the tree
  */
-void ph6_remove (ph6_t* tree, void* index);
+void ph6_remove (ph6_t* tree, ph6_point_t* point);
 /*
  * check if the tree is empty
  *
@@ -267,7 +233,7 @@ void ph6_query (ph6_t* tree, ph6_query_t* query, void* data);
  * 	if you want to declare and initialize a query in one line
  */
 ph6_query_t ph6_query_create (ph6_t* tree, void* min, void* max, phtree_iteration_function_t function);
-void ph6_query_set (ph6_t* tree, ph6_query_t* query, void* min, void* max, phtree_iteration_function_t function);
+void ph6_query_set (ph6_t* tree, ph6_query_t* query, ph6_point_t* min, ph6_point_t* max, phtree_iteration_function_t function);
 /*
  * box queries are only relevant in trees with an even number of dimensions
  * in a phtree of DIMENSIONS you can represent axis aligned boxes of (DIMENSIONS / 2)
@@ -305,28 +271,30 @@ void ph6_query_set (ph6_t* tree, ph6_query_t* query, void* min, void* max, phtre
  * set intersect to 'true' to include intersecting boxes
  * set intersect to 'false' to only include boxes entirely contained in the query box
  */
-void ph6_query_box_set (ph6_t* tree, ph6_query_t* query, bool intersect, void* min, void* max, phtree_iteration_function_t function);
+void ph6_query_box_set (ph6_t* tree, ph6_query_t* query, bool intersect, ph6_point_t* min, ph6_point_t* max, phtree_iteration_function_t function);
 
 /*
  * ph6_query_box_point_set is a convenience function
  * 	for querying a single lower dimensional point against higher dimensional boxes
  * you can do the same with regular ph6_query_box_set
  */
-void ph6_query_box_point_set (ph6_t* tree, ph6_query_t* query, void* point, phtree_iteration_function_t function);
+void ph6_query_box_point_set (ph6_t* tree, ph6_query_t* query, ph6_point_t* point, phtree_iteration_function_t function);
 void ph6_query_clear (ph6_query_t* query);
 
 /*
- * use this in your convert_to_point function
- * 	ph6_point_set calls tree->convert_to_key on each of the values passed in to it
- * 	so you should not call convert_to_key in your convert_to_point function
+ * convenience function for setting the values of a ph6_point_t
  */
-void ph6_point_set (ph6_t* tree, ph6_point_t* point, void* a, void* b, void* c, void* d, void* e, void* f);
+void ph6_point_set (ph6_point_t* point, phtree_key_t a, phtree_key_t b, phtree_key_t c, phtree_key_t d, phtree_key_t e, phtree_key_t f);
 /*
- * use this in your convert_to_box_point function
- * 
- * ph6_point_box_set only takes (DIMENSIONS / 2) inputs
- * 	as it is specifically used for querying lower dimensional boxes
+ * when treating a higher dimensional space as representing boxes
+ * 	a lower dimensional point will repeat itself
+ * 	for example:
+ * 		in a 4d space which represents boxes
+ * 			the 2d point (1, 2) would be represented as (1, 2, 1, 2) in the 4d space
+ *
+ * this function is a convenience to set a higher dimensional point
+ * 	using a lower dimensional set of keys
  */
-void ph6_point_box_set (ph6_t* tree, ph6_point_t* point, void* a, void* b, void* c);
+void ph6_point_box_set (ph6_point_t* point, phtree_key_t a, phtree_key_t b, phtree_key_t c);
 
 #endif
