@@ -154,7 +154,8 @@ typedef struct ph5_query_t
 
 
 /*
- * allocate and initialize a new tree
+ * ph5_create
+ * 	if you want to declare and initialize a phtree in one line
  */
 /*
  * !! the following 4 functions are REQUIRED for the tree to work !!
@@ -182,7 +183,7 @@ typedef struct ph5_query_t
  * 	likely you will be inputting an n-dimensional point into this
  * 		breaking up that point and passing it in to ph5_point_set
  */
-ph5_t* ph5_create (
+ph5_t ph5_create (
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void* element),
 	phtree_key_t (*convert_to_key) (void* input),
@@ -199,10 +200,6 @@ void ph5_initialize (
  * clear all entries/elements from the tree
  */
 void ph5_clear (ph5_t* tree);
-/*
- * free a tree
- */
-void ph5_free (ph5_t* tree);
 
 /*
  * run function on every element in the tree
@@ -250,9 +247,10 @@ bool ph5_empty (ph5_t* tree);
 void ph5_query (ph5_t* tree, ph5_query_t* query, void* data);
 
 /*
- * allocate a query
+ * ph5_query_create
+ * 	if you want to declare and initialize a query in one line
  */
-void ph5_query_free (ph5_query_t* query);
+ph5_query_t ph5_query_create (ph5_t* tree, void* min, void* max, phtree_iteration_function_t function);
 void ph5_query_set (ph5_t* tree, ph5_query_t* query, void* min, void* max, phtree_iteration_function_t function);
 void ph5_query_clear (ph5_query_t* query);
 

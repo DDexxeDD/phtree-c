@@ -143,7 +143,9 @@ int main ()
 {
 	srand (time (NULL));
 
-	ph2_t* tree = ph2_create (
+	ph2_t* tree = calloc (1, sizeof (*tree));
+	ph2_initialize (
+		tree,
 		element_2d_create,
 		element_2d_destroy,
 		phtree_int32_to_key,
@@ -222,7 +224,8 @@ int main ()
 
 	cvector_free (elements);
 	cvector_free (things);
-	ph2_free (tree);
+	ph2_clear (tree);
+	free (tree);
 
 	return 0;
 }

@@ -103,7 +103,9 @@ phtree_key_t phtree_int32_to_key (void* input)
 
 int main ()
 {
-	ph1_t* tree = ph1_create (
+	ph1_t* tree = calloc (1, sizeof (*tree));
+	ph1_initialize (
+		tree,
 		element_simple_create,
 		element_simple_destroy,
 		phtree_int32_to_key,  // you can use the provided int32_to_key function directly for convert_to_key
@@ -150,7 +152,8 @@ int main ()
 	printf ("\n");
 
 	cvector_free (integers);
-	ph1_free (tree);
+	ph1_clear (tree);
+	free (tree);
 
 	return 0;
 }

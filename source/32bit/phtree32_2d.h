@@ -160,7 +160,8 @@ typedef struct ph2_query_t
 
 
 /*
- * allocate and initialize a new tree
+ * ph2_create
+ * 	if you want to declare and initialize a phtree in one line
  */
 /*
  * !! the following 4 functions are REQUIRED for the tree to work !!
@@ -196,7 +197,7 @@ typedef struct ph2_query_t
  * 	convert input in to special points used for box queries
  * 	!! make sure to use ph2_point_box_set and not the regular ph2_point_set !!
  */
-ph2_t* ph2_create (
+ph2_t ph2_create (
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void* element),
 	phtree_key_t (*convert_to_key) (void* input),
@@ -215,10 +216,6 @@ void ph2_initialize (
  * clear all entries/elements from the tree
  */
 void ph2_clear (ph2_t* tree);
-/*
- * free a tree
- */
-void ph2_free (ph2_t* tree);
 
 /*
  * run function on every element in the tree
@@ -266,9 +263,10 @@ bool ph2_empty (ph2_t* tree);
 void ph2_query (ph2_t* tree, ph2_query_t* query, void* data);
 
 /*
- * allocate a query
+ * ph2_query_create
+ * 	if you want to declare and initialize a query in one line
  */
-void ph2_query_free (ph2_query_t* query);
+ph2_query_t ph2_query_create (ph2_t* tree, void* min, void* max, phtree_iteration_function_t function);
 void ph2_query_set (ph2_t* tree, ph2_query_t* query, void* min, void* max, phtree_iteration_function_t function);
 /*
  * box queries are only relevant in trees with an even number of dimensions

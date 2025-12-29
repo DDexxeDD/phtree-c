@@ -154,7 +154,8 @@ typedef struct ph1_query_t
 
 
 /*
- * allocate and initialize a new tree
+ * ph1_create
+ * 	if you want to declare and initialize a phtree in one line
  */
 /*
  * !! the following 4 functions are REQUIRED for the tree to work !!
@@ -182,7 +183,7 @@ typedef struct ph1_query_t
  * 	likely you will be inputting an n-dimensional point into this
  * 		breaking up that point and passing it in to ph1_point_set
  */
-ph1_t* ph1_create (
+ph1_t ph1_create (
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void* element),
 	phtree_key_t (*convert_to_key) (void* input),
@@ -199,10 +200,6 @@ void ph1_initialize (
  * clear all entries/elements from the tree
  */
 void ph1_clear (ph1_t* tree);
-/*
- * free a tree
- */
-void ph1_free (ph1_t* tree);
 
 /*
  * run function on every element in the tree
@@ -250,9 +247,10 @@ bool ph1_empty (ph1_t* tree);
 void ph1_query (ph1_t* tree, ph1_query_t* query, void* data);
 
 /*
- * allocate a query
+ * ph1_query_create
+ * 	if you want to declare and initialize a query in one line
  */
-void ph1_query_free (ph1_query_t* query);
+ph1_query_t ph1_query_create (ph1_t* tree, void* min, void* max, phtree_iteration_function_t function);
 void ph1_query_set (ph1_t* tree, ph1_query_t* query, void* min, void* max, phtree_iteration_function_t function);
 void ph1_query_clear (ph1_query_t* query);
 

@@ -520,26 +520,15 @@ void ph6_initialize (
 /*
  * create a new tree
  */
-ph6_t* ph6_create (
+ph6_t ph6_create (
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void* element),
 	phtree_key_t (*convert_to_key) (void* input),
 	void (*convert_to_point) (ph6_t* tree, ph6_point_t* out, void* input),
 	void (*convert_to_box_point) (ph6_t* tree, ph6_point_t* out, void* input))
 {
-	ph6_t* tree = phtree_calloc (1, sizeof (*tree));
-
-	if (!tree)
-	{
-		return NULL;
-	}
-
-	ph6_initialize (tree, element_create, element_destroy, convert_to_key, convert_to_point, convert_to_box_point);
-	if (tree->root.children == NULL)
-	{
-		phtree_free (tree);
-		return NULL;
-	}
+	ph6_t tree;
+	ph6_initialize (&tree, element_create, element_destroy, convert_to_key, convert_to_point, convert_to_box_point);
 
 	return tree;
 }
@@ -589,15 +578,6 @@ void ph6_clear (ph6_t* tree)
 	tree->root.child_capacity = 0;
 
 	phtree_free (tree->root.children);
-}
-
-/*
- * free a tree
- */
-void ph6_free (ph6_t* tree)
-{
-	ph6_clear (tree);
-	phtree_free (tree);
 }
 
 /*
@@ -936,6 +916,14 @@ static void query_set_internal (ph6_t* tree, ph6_query_t* query, ph6_point_t* mi
 	query->function = function;
 }
 
+ph6_query_t ph6_query_create (ph6_t* tree, void* min, void* max, phtree_iteration_function_t function)
+{
+	ph6_query_t query;
+	ph6_query_set (tree, &query, min, max, function);
+
+	return query;
+}
+
 void ph6_query_set (ph6_t* tree, ph6_query_t* query, void* min_in, void* max_in, phtree_iteration_function_t function)
 {
 	if (!query)
@@ -993,11 +981,6 @@ void ph6_query_box_set (ph6_t* tree, ph6_query_t* query, bool intersect, void* m
 void ph6_query_box_point_set (ph6_t* tree, ph6_query_t* query, void* point, phtree_iteration_function_t function)
 {
 	ph6_query_box_set (tree, query, true, point, point, function);
-}
-
-void ph6_query_free (ph6_query_t* query)
-{
-	phtree_free (query);
 }
 
 /*

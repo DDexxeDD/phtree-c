@@ -160,7 +160,8 @@ typedef struct ph4_query_t
 
 
 /*
- * allocate and initialize a new tree
+ * ph4_create
+ * 	if you want to declare and initialize a phtree in one line
  */
 /*
  * !! the following 4 functions are REQUIRED for the tree to work !!
@@ -196,7 +197,7 @@ typedef struct ph4_query_t
  * 	convert input in to special points used for box queries
  * 	!! make sure to use ph4_point_box_set and not the regular ph4_point_set !!
  */
-ph4_t* ph4_create (
+ph4_t ph4_create (
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void* element),
 	phtree_key_t (*convert_to_key) (void* input),
@@ -215,10 +216,6 @@ void ph4_initialize (
  * clear all entries/elements from the tree
  */
 void ph4_clear (ph4_t* tree);
-/*
- * free a tree
- */
-void ph4_free (ph4_t* tree);
 
 /*
  * run function on every element in the tree
@@ -266,9 +263,10 @@ bool ph4_empty (ph4_t* tree);
 void ph4_query (ph4_t* tree, ph4_query_t* query, void* data);
 
 /*
- * allocate a query
+ * ph4_query_create
+ * 	if you want to declare and initialize a query in one line
  */
-void ph4_query_free (ph4_query_t* query);
+ph4_query_t ph4_query_create (ph4_t* tree, void* min, void* max, phtree_iteration_function_t function);
 void ph4_query_set (ph4_t* tree, ph4_query_t* query, void* min, void* max, phtree_iteration_function_t function);
 /*
  * box queries are only relevant in trees with an even number of dimensions

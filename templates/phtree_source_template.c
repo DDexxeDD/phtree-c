@@ -548,7 +548,7 @@ void {{prefix}}_initialize (
 /*
  * create a new tree
  */
-{{prefix}}_t* {{prefix}}_create (
+{{prefix}}_t {{prefix}}_create (
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void* element),
 	phtree_key_t (*convert_to_key) (void* input),
@@ -560,19 +560,8 @@ void {{prefix}}_initialize (
 	void (*convert_to_box_point) ({{prefix}}_t* tree, {{prefix}}_point_t* out, void* input))
 {{/even}}
 {
-	{{prefix}}_t* tree = phtree_calloc (1, sizeof (*tree));
-
-	if (!tree)
-	{
-		return NULL;
-	}
-
-	{{prefix}}_initialize (tree, element_create, element_destroy, convert_to_key, convert_to_point{{#even}}, convert_to_box_point{{/even}});
-	if (tree->root.children == NULL)
-	{
-		phtree_free (tree);
-		return NULL;
-	}
+	{{prefix}}_t tree;
+	{{prefix}}_initialize (&tree, element_create, element_destroy, convert_to_key, convert_to_point{{#even}}, convert_to_box_point{{/even}});
 
 	return tree;
 }
@@ -622,15 +611,6 @@ void {{prefix}}_clear ({{prefix}}_t* tree)
 	tree->root.child_capacity = 0;
 
 	phtree_free (tree->root.children);
-}
-
-/*
- * free a tree
- */
-void {{prefix}}_free ({{prefix}}_t* tree)
-{
-	{{prefix}}_clear (tree);
-	phtree_free (tree);
 }
 
 /*
@@ -969,6 +949,14 @@ static void query_set_internal ({{prefix}}_t* tree, {{prefix}}_query_t* query, {
 	query->function = function;
 }
 
+{{prefix}}_query_t {{prefix}}_query_create ({{prefix}}_t* tree, void* min, void* max, phtree_iteration_function_t function)
+{
+	{{prefix}}_query_t query;
+	{{prefix}}_query_set (tree, &query, min, max, function);
+
+	return query;
+}
+
 void {{prefix}}_query_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, void* min_in, void* max_in, phtree_iteration_function_t function)
 {
 	if (!query)
@@ -1029,11 +1017,6 @@ void {{prefix}}_query_box_point_set ({{prefix}}_t* tree, {{prefix}}_query_t* que
 	{{prefix}}_query_box_set (tree, query, true, point, point, function);
 }
 {{/even}}
-
-void {{prefix}}_query_free ({{prefix}}_query_t* query)
-{
-	phtree_free (query);
-}
 
 /*
  * clear a window query

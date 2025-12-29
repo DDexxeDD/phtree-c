@@ -126,7 +126,7 @@ Unless you only ever need single elements from the tree, you will need to define
 
 The .h an .c files are generated using [mustache](https://mustache.github.io/) templates.  If you want to customize the function prefix (ph1_, ph2_, ph3_, ...) or the dimensions of a tree, you will need to write a (or modify an existing) mustache hash file.  The templates and existing mustache hash files are located in the `templates` directory.
 
-If you want to be able to use trees of different bit widths and the same dimensionality at the same time, you will need to generate them with different prefixes (example: ph32_1d_, ph64_1d_)
+If you want to be able to use trees of different bit widths and the same dimensionality at the same time, you will need to generate them with different prefixes (example: ph32_1d_, ph32_2d_, ph32_3d_)
 
 ***!! Do not attempt to generate trees with more than 6 dimensions !!***
 

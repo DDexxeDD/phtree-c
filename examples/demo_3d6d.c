@@ -156,7 +156,9 @@ phtree_key_t phtree_float_to_key (void* input)
 
 int main ()
 {
-	ph3_t* tree3d = ph3_create (
+	ph3_t* tree3d = calloc (1, sizeof (*tree3d));
+	ph3_initialize (
+		tree3d,
 		element_simple_create,
 		element_simple_destroy,
 		phtree_float_to_key,
@@ -211,8 +213,13 @@ int main ()
 	cvector_clear (query_cache);
 	printf ("\n\n");
 
+	ph3_clear (tree3d);
+	free (tree3d);
+
 	printf ("*** 6d tree ***\n\n");
-	ph6_t* tree6d = ph6_create (
+	ph6_t* tree6d = calloc (1, sizeof (*tree6d));
+	ph6_initialize (
+		tree6d,
 		element_simple_create,
 		element_simple_destroy,
 		phtree_float_to_key,
@@ -274,6 +281,8 @@ int main ()
 	}
 
 	cvector_free (query_cache);
+	ph6_clear (tree6d);
+	free (tree6d);
 
 	return 0;
 }

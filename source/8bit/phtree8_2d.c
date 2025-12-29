@@ -525,26 +525,15 @@ void ph2_initialize (
 /*
  * create a new tree
  */
-ph2_t* ph2_create (
+ph2_t ph2_create (
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void* element),
 	phtree_key_t (*convert_to_key) (void* input),
 	void (*convert_to_point) (ph2_t* tree, ph2_point_t* out, void* input),
 	void (*convert_to_box_point) (ph2_t* tree, ph2_point_t* out, void* input))
 {
-	ph2_t* tree = phtree_calloc (1, sizeof (*tree));
-
-	if (!tree)
-	{
-		return NULL;
-	}
-
-	ph2_initialize (tree, element_create, element_destroy, convert_to_key, convert_to_point, convert_to_box_point);
-	if (tree->root.children == NULL)
-	{
-		phtree_free (tree);
-		return NULL;
-	}
+	ph2_t tree;
+	ph2_initialize (&tree, element_create, element_destroy, convert_to_key, convert_to_point, convert_to_box_point);
 
 	return tree;
 }
@@ -594,15 +583,6 @@ void ph2_clear (ph2_t* tree)
 	tree->root.child_capacity = 0;
 
 	phtree_free (tree->root.children);
-}
-
-/*
- * free a tree
- */
-void ph2_free (ph2_t* tree)
-{
-	ph2_clear (tree);
-	phtree_free (tree);
 }
 
 /*
@@ -941,6 +921,14 @@ static void query_set_internal (ph2_t* tree, ph2_query_t* query, ph2_point_t* mi
 	query->function = function;
 }
 
+ph2_query_t ph2_query_create (ph2_t* tree, void* min, void* max, phtree_iteration_function_t function)
+{
+	ph2_query_t query;
+	ph2_query_set (tree, &query, min, max, function);
+
+	return query;
+}
+
 void ph2_query_set (ph2_t* tree, ph2_query_t* query, void* min_in, void* max_in, phtree_iteration_function_t function)
 {
 	if (!query)
@@ -998,11 +986,6 @@ void ph2_query_box_set (ph2_t* tree, ph2_query_t* query, bool intersect, void* m
 void ph2_query_box_point_set (ph2_t* tree, ph2_query_t* query, void* point, phtree_iteration_function_t function)
 {
 	ph2_query_box_set (tree, query, true, point, point, function);
-}
-
-void ph2_query_free (ph2_query_t* query)
-{
-	phtree_free (query);
 }
 
 /*

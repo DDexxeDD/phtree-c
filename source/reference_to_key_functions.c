@@ -85,7 +85,7 @@ phtree_key_t phtree_int32_to_key (void* input)
  * -nan will be less than -infinity
  * -0 is converted to +0
  */
-// phtree_float_to_key expects input to be a pointer to a float
+// phtree_float_to_key expects input to be a pointer to a 32 bit float
 phtree_key_t phtree_float_to_key (void* input)
 {
 	phtree_key_t bits;

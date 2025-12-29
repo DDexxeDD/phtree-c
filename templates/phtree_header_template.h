@@ -162,7 +162,8 @@ typedef struct {{prefix}}_query_t
 
 
 /*
- * allocate and initialize a new tree
+ * {{prefix}}_create
+ * 	if you want to declare and initialize a phtree in one line
  */
 /*
  * !! the following 4 functions are REQUIRED for the tree to work !!
@@ -200,7 +201,7 @@ typedef struct {{prefix}}_query_t
  * 	!! make sure to use {{prefix}}_point_box_set and not the regular {{prefix}}_point_set !!
 {{/even}}
  */
-{{prefix}}_t* {{prefix}}_create (
+{{prefix}}_t {{prefix}}_create (
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void* element),
 	phtree_key_t (*convert_to_key) (void* input),
@@ -229,10 +230,6 @@ void {{prefix}}_initialize (
  * clear all entries/elements from the tree
  */
 void {{prefix}}_clear ({{prefix}}_t* tree);
-/*
- * free a tree
- */
-void {{prefix}}_free ({{prefix}}_t* tree);
 
 /*
  * run function on every element in the tree
@@ -280,9 +277,10 @@ bool {{prefix}}_empty ({{prefix}}_t* tree);
 void {{prefix}}_query ({{prefix}}_t* tree, {{prefix}}_query_t* query, void* data);
 
 /*
- * allocate a query
+ * {{prefix}}_query_create
+ * 	if you want to declare and initialize a query in one line
  */
-void {{prefix}}_query_free ({{prefix}}_query_t* query);
+{{prefix}}_query_t {{prefix}}_query_create ({{prefix}}_t* tree, void* min, void* max, phtree_iteration_function_t function);
 void {{prefix}}_query_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, void* min, void* max, phtree_iteration_function_t function);
 {{#even}}
 /*
