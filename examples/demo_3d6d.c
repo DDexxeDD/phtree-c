@@ -199,7 +199,10 @@ int main ()
 	ph3_initialize (
 		tree3d,
 		element_simple_create,
-		element_simple_destroy);
+		element_simple_destroy,
+		NULL,
+		NULL,
+		NULL);
 
 	box3d_t box_a = {{-10.0f, -10.0f, -10.0f}, {10.0f, 10.0f, 10.0f}, 'a'};
 	box3d_t box_b = {{0.0f, 0.0f, 0.0f}, {20.0f, 20.0f, 20.0f}, 'b'};
@@ -262,7 +265,10 @@ int main ()
 	ph6_initialize (
 		tree6d,
 		element_simple_create,
-		element_simple_destroy);
+		element_simple_destroy,
+		NULL,
+		NULL,
+		NULL);
 
 	insert_box_6d (tree6d, &box_a);
 	insert_box_6d (tree6d, &box_b);

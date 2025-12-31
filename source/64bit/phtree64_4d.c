@@ -132,6 +132,10 @@ uint64_t phtree64_4d_popcount (uint64_t bit_string)
 
 typedef unsigned int hypercube_address_t;
 
+static void* (*phtree_children_malloc) (size_t size) = malloc;
+static void* (*phtree_children_realloc) (void* pointer, size_t new_size) = realloc;
+static void (*phtree_children_free) (void* pointer) = free;
+
 /*
  * point_a >= point_b
  * 	_all_ of point_a's dimensions must be greater than or equal to point_b's dimensions
@@ -276,7 +280,7 @@ static void* add_child (ph4_node_t* node, hypercube_address_t address)
 		// add 4 slots
 		// 	no performance testing/tuning was done on this, just adding 4
 		// 		might be better to add some other number
-		node->children = phtree_realloc (node->children, (node->child_capacity * sizeof (ph4_node_t)) + (sizeof (ph4_node_t) * 4));
+		node->children = phtree_children_realloc (node->children, (node->child_capacity * sizeof (ph4_node_t)) + (sizeof (ph4_node_t) * 4));
 		node->child_capacity += 4;
 	}
 
@@ -321,7 +325,7 @@ static void node_add_entry (ph4_node_t* node, ph4_point_t* point)
 
 static void node_initialize (ph4_node_t* node, uint16_t infix_length, uint16_t postfix_length, ph4_point_t* point)
 {
-	node->children = phtree_calloc (4, sizeof (ph4_node_t));
+	node->children = phtree_children_malloc (4 * sizeof (ph4_node_t));
 	node->child_capacity = 4;
 	node->child_count = 0;
 	node->active_children = 0;
@@ -502,13 +506,29 @@ static void entry_free (ph4_t* tree, ph4_node_t* node)
 void ph4_initialize (
 	ph4_t* tree,
 	void* (*element_create) (void* input),
-	void (*element_destroy) (void*))
+	void (*element_destroy) (void*),
+	void* (*children_malloc) (size_t size),
+	void* (*children_realloc) (void* pointer, size_t size),
+	void (*children_free) (void* pointer))
 {
-	ph4_point_t empty_point = {{0, 0, 0, 0}};
-	node_initialize (&tree->root, 0, PHTREE_DEPTH - 1, &empty_point);
-
 	tree->element_create = element_create;
 	tree->element_destroy = element_destroy;
+
+	if (children_malloc)
+	{
+		phtree_children_malloc = children_malloc;
+	}
+	if (children_realloc)
+	{
+		phtree_children_realloc = children_realloc;
+	}
+	if (children_free)
+	{
+		phtree_children_free = children_free;
+	}
+
+	ph4_point_t empty_point = {0};
+	node_initialize (&tree->root, 0, PHTREE_DEPTH - 1, &empty_point);
 }
 
 /*
@@ -516,10 +536,13 @@ void ph4_initialize (
  */
 ph4_t ph4_create (
 	void* (*element_create) (void* input),
-	void (*element_destroy) (void* element))
+	void (*element_destroy) (void* element),
+	void* (*children_malloc) (size_t size),
+	void* (*children_realloc) (void* pointer, size_t size),
+	void (*children_free) (void* pointer))
 {
 	ph4_t tree;
-	ph4_initialize (&tree, element_create, element_destroy);
+	ph4_initialize (&tree, element_create, element_destroy, children_malloc, children_realloc, children_free);
 
 	return tree;
 }
@@ -546,7 +569,7 @@ static void free_nodes (ph4_t* tree, ph4_node_t* node)
 		free_function (tree, &node->children[iter]);
 	}
 
-	phtree_free (node->children);
+	phtree_children_free (node->children);
 }
 
 /*
@@ -568,7 +591,7 @@ void ph4_clear (ph4_t* tree)
 	tree->root.child_count = 0;
 	tree->root.child_capacity = 0;
 
-	phtree_free (tree->root.children);
+	phtree_children_free (tree->root.children);
 }
 
 /*
@@ -687,7 +710,7 @@ void ph4_remove_child (ph4_node_t* node, hypercube_address_t address)
 	int index = child_index (node, address);
 	ph4_node_t* child = &node->children[index];
 
-	phtree_free (child->children);
+	phtree_children_free (child->children);
 
 	memmove (node->children + index, node->children + index + 1, sizeof (ph4_node_t) * (node->child_count - index - 1));
 
@@ -777,7 +800,7 @@ void ph4_remove (ph4_t* tree, ph4_point_t* point)
 			parent->children[index] = current_node->children[0];
 			parent->children[index].infix_length = parent->postfix_length - parent->children[index].postfix_length - 1;
 
-			phtree_free (current_node->children);
+			phtree_children_free (current_node->children);
 
 			stack_index--;
 		}

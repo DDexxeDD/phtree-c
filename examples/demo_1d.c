@@ -119,7 +119,10 @@ int main ()
 	ph1_initialize (
 		tree,
 		element_simple_create,
-		element_simple_destroy);
+		element_simple_destroy,
+		NULL,
+		NULL,
+		NULL);
 
 	for (int32_t iter = -10; iter <= 10; iter += 2)
 	{

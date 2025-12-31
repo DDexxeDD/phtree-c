@@ -114,7 +114,10 @@ int main ()
 	ph2_initialize (
 		tree,
 		element_2d_create,
-		element_2d_destroy);
+		element_2d_destroy,
+		NULL,
+		NULL,
+		NULL);
 
 	// keep a separate list of the things we are creating
 	// 	so we can easily query things we know exist later

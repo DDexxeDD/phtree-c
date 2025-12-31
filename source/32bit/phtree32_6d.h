@@ -31,20 +31,6 @@ typedef uint32_t phtree_key_t;
 typedef void (*phtree_iteration_function_t) (void* element, void* data);
 
 /*
- * to use your own custom allocators
- * 	define these somewhere before here
- */
-#ifndef phtree_calloc
-#define phtree_calloc calloc
-#endif
-#ifndef phtree_free
-#define phtree_free free
-#endif
-#ifndef phtree_realloc
-#define phtree_realloc realloc
-#endif
-
-/*
  * end common section
  */
 
@@ -149,10 +135,6 @@ typedef struct ph6_query_t
 
 
 /*
- * ph6_create
- * 	if you want to declare and initialize a phtree in one line
- */
-/*
  * !! the following 2 functions are REQUIRED for the tree to work !!
  *
  * void* element_create ()
@@ -168,15 +150,34 @@ typedef struct ph6_query_t
  *
  * void element_destory (void* element)
  * 	deallocates/frees whatever was allocated by element_create
+ *
+ *
+ * the children_* functions are optional
+ *
+ * passing NULL to the children_* parameters
+ * 	will cause the phtree to use the std library memory functions (malloc, realloc, free)
+ *
+ * if you want to do something like use a pool for tree nodes
+ * 	the children_* functions are what you would use
  */
-ph6_t ph6_create (
-	void* (*element_create) (void* input),
-	void (*element_destroy) (void* element));
-
 void ph6_initialize (
 	ph6_t* tree,
 	void* (*element_create) (void* input),
-	void (*element_destroy) (void*));
+	void (*element_destroy) (void*),
+	void* (*children_malloc) (size_t size),
+	void* (*children_realloc) (void* pointer, size_t size),
+	void (*children_free) (void* pointer));
+
+/*
+ * ph6_create
+ * 	if you want to declare and initialize a phtree in one line
+ */
+ph6_t ph6_create (
+	void* (*element_create) (void* input),
+	void (*element_destroy) (void* element),
+	void* (*children_malloc) (size_t size),
+	void* (*children_realloc) (void* pointer, size_t size),
+	void (*children_free) (void* pointer));
 
 /*
  * clear all entries/elements from the tree
