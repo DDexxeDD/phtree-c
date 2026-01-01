@@ -118,6 +118,35 @@ typedef struct ph5_t
 	 * 	including the element itself
 	 */
 	void (*element_destroy) (void* element);
+
+	/*
+	 * optional
+	 * allocate child nodes for a node in the tree
+	 *
+	 * if you want to allocate nodes from a pool
+	 * 	do it here
+	 *
+	 * this will default to std malloc
+	 */
+	void* (*children_malloc) (size_t size);
+	/*
+	 * optional
+	 * reallocate child nodes for a node in the tree
+	 * 	when a node's children array needs to grow
+	 *
+	 * if you want to reallocate a node from a pool
+	 * 	do it here
+	 *
+	 * this will default to std realloc
+	 */
+	void* (*children_realloc) (void* pointer, size_t new_size);
+	/*
+	 * optional
+	 * free a node's children array
+	 *
+	 * this will default to std free
+	 */
+	void (*children_free) (void* pointer);
 } ph5_t;
 
 typedef struct ph5_query_t

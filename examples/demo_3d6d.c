@@ -200,9 +200,9 @@ int main ()
 		tree3d,
 		element_simple_create,
 		element_simple_destroy,
-		NULL,
-		NULL,
-		NULL);
+		malloc,
+		realloc,
+		free);
 
 	box3d_t box_a = {{-10.0f, -10.0f, -10.0f}, {10.0f, 10.0f, 10.0f}, 'a'};
 	box3d_t box_b = {{0.0f, 0.0f, 0.0f}, {20.0f, 20.0f, 20.0f}, 'b'};
@@ -266,9 +266,9 @@ int main ()
 		tree6d,
 		element_simple_create,
 		element_simple_destroy,
-		NULL,
-		NULL,
-		NULL);
+		malloc,
+		realloc,
+		free);
 
 	insert_box_6d (tree6d, &box_a);
 	insert_box_6d (tree6d, &box_b);

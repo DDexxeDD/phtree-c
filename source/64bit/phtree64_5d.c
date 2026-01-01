@@ -1,4 +1,4 @@
-#include <stdlib.h>
+//#include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -131,10 +131,6 @@ uint64_t phtree64_5d_popcount (uint64_t bit_string)
 #define child_active(node,address) ((node)->active_children & (PHTREE_CHILD_FLAG << (CHILD_SHIFT - (address))))
 
 typedef unsigned int hypercube_address_t;
-
-static void* (*phtree_children_malloc) (size_t size) = malloc;
-static void* (*phtree_children_realloc) (void* pointer, size_t new_size) = realloc;
-static void (*phtree_children_free) (void* pointer) = free;
 
 /*
  * point_a >= point_b
@@ -273,14 +269,14 @@ static hypercube_address_t calculate_hypercube_address (ph5_point_t* point, ph5_
 	return address;
 }
 
-static void* add_child (ph5_node_t* node, hypercube_address_t address)
+static void* add_child (ph5_t* tree, ph5_node_t* node, hypercube_address_t address)
 {
 	if (node->child_count >= node->child_capacity)
 	{
 		// add 4 slots
 		// 	no performance testing/tuning was done on this, just adding 4
 		// 		might be better to add some other number
-		node->children = phtree_children_realloc (node->children, (node->child_capacity * sizeof (ph5_node_t)) + (sizeof (ph5_node_t) * 4));
+		node->children = tree->children_realloc (node->children, (node->child_capacity * sizeof (ph5_node_t)) + (sizeof (ph5_node_t) * 4));
 		node->child_capacity += 4;
 	}
 
@@ -303,7 +299,7 @@ static void* add_child (ph5_node_t* node, hypercube_address_t address)
  * insert a entry in a node
  * 	entries are nodes whose child pointer points to a user element
  */
-static void node_add_entry (ph5_node_t* node, ph5_point_t* point)
+static void node_add_entry (ph5_t* tree, ph5_node_t* node, ph5_point_t* point)
 {
 	hypercube_address_t address = calculate_hypercube_address (point, node);
 
@@ -317,15 +313,15 @@ static void node_add_entry (ph5_node_t* node, ph5_point_t* point)
 
 	// if there is _not_ an entry at address
 	// 	create a new entry
-	ph5_node_t* new_entry = add_child (node, address);
+	ph5_node_t* new_entry = add_child (tree, node, address);
 
 	new_entry->point = *point;
 	new_entry->children = NULL;
 }
 
-static void node_initialize (ph5_node_t* node, uint16_t infix_length, uint16_t postfix_length, ph5_point_t* point)
+static void node_initialize (ph5_t* tree, ph5_node_t* node, uint16_t infix_length, uint16_t postfix_length, ph5_point_t* point)
 {
-	node->children = phtree_children_malloc (4 * sizeof (ph5_node_t));
+	node->children = tree->children_malloc (4 * sizeof (ph5_node_t));
 	node->child_capacity = 4;
 	node->child_count = 0;
 	node->active_children = 0;
@@ -351,7 +347,7 @@ static void node_initialize (ph5_node_t* node, uint16_t infix_length, uint16_t p
  * 	if the node already has a child at the address
  * 		return that existing node and set success to false
  */
-static ph5_node_t* node_try_add (bool* added_new_node, ph5_node_t* node, hypercube_address_t address, ph5_point_t* point)
+static ph5_node_t* node_try_add (ph5_t* tree, bool* added_new_node, ph5_node_t* node, hypercube_address_t address, ph5_point_t* point)
 {
 	ph5_node_t* node_out = NULL;
 
@@ -363,9 +359,9 @@ static ph5_node_t* node_try_add (bool* added_new_node, ph5_node_t* node, hypercu
 		// 	because this is a patricia trie
 		// 		the child is going to be all the way at the bottom of the tree
 		// 			postfix = 0  // there will only be entries below this node, no other nodes
-		node_out = add_child (node, address);
-		node_initialize (node_out, node->postfix_length - 1, 0, point);
-		node_add_entry (node_out, point);
+		node_out = add_child (tree, node, address);
+		node_initialize (tree, node_out, node->postfix_length - 1, 0, point);
+		node_add_entry (tree, node_out, point);
 
 		*added_new_node = true;
 	}
@@ -401,7 +397,7 @@ static int number_of_diverging_bits (ph5_point_t* point_a, ph5_point_t* point_b)
 /*
  * insert a new node between existing nodes
  */
-static ph5_node_t* node_insert_split (ph5_node_t* parent, ph5_node_t* child, ph5_point_t* point, int max_conflicting_bits)
+static ph5_node_t* node_insert_split (ph5_t* tree, ph5_node_t* parent, ph5_node_t* child, ph5_point_t* point, int max_conflicting_bits)
 {
 	/*
 	 * because child is already in the corrent array position we would want to put a new split node
@@ -414,19 +410,19 @@ static ph5_node_t* node_insert_split (ph5_node_t* parent, ph5_node_t* child, ph5
 	// store the values of the current child
 	ph5_node_t old_child = *child;
 	// clear and reset child
-	node_initialize (child, parent->postfix_length - max_conflicting_bits, max_conflicting_bits - 1, point);
+	node_initialize (tree, child, parent->postfix_length - max_conflicting_bits, max_conflicting_bits - 1, point);
 	// add a new child to child
 	// 	which is going to be where the old_child goes
-	ph5_node_t* new_child = add_child (child, calculate_hypercube_address (&old_child.point, child));
+	ph5_node_t* new_child = add_child (tree, child, calculate_hypercube_address (&old_child.point, child));
 	// copy the values from old_child into the new_child
 	*new_child = old_child;
 
 	new_child->infix_length = (child->postfix_length - new_child->postfix_length) - 1;
 
 	// add the new child that we created the split for
-	new_child = add_child (child, calculate_hypercube_address (point, child));
-	node_initialize (new_child, child->postfix_length - 1, 0, point);
-	node_add_entry (new_child, point);
+	new_child = add_child (tree, child, calculate_hypercube_address (point, child));
+	node_initialize (tree, new_child, child->postfix_length - 1, 0, point);
+	node_add_entry (tree, new_child, point);
 
 	return new_child;
 }
@@ -434,7 +430,7 @@ static ph5_node_t* node_insert_split (ph5_node_t* parent, ph5_node_t* child, ph5
 /*
  * figure out what to do when trying to add a new node where a node already exists
  */
-static ph5_node_t* node_handle_collision (ph5_node_t* node, ph5_node_t* sub_node, ph5_point_t* point)
+static ph5_node_t* node_handle_collision (ph5_t* tree, ph5_node_t* node, ph5_node_t* sub_node, ph5_point_t* point)
 {
 	// if infix_length == 0
 	// 	we can not insert a node between node and sub_node
@@ -455,13 +451,13 @@ static ph5_node_t* node_handle_collision (ph5_node_t* node, ph5_node_t* sub_node
 		 */
 		if (max_conflicting_bits > sub_node->postfix_length + 1)
 		{
-			return node_insert_split (node, sub_node, point, max_conflicting_bits);
+			return node_insert_split (tree, node, sub_node, point, max_conflicting_bits);
 		}
 	}
 
 	if (phtree_node_is_leaf (sub_node))
 	{
-		node_add_entry (sub_node, point);
+		node_add_entry (tree, sub_node, point);
 	}
 
 	return sub_node;
@@ -470,14 +466,14 @@ static ph5_node_t* node_handle_collision (ph5_node_t* node, ph5_node_t* sub_node
 /*
  * add a new node to the tree
  */
-static ph5_node_t* node_add (ph5_node_t* node, ph5_point_t* point)
+static ph5_node_t* node_add (ph5_t* tree, ph5_node_t* node, ph5_point_t* point)
 {
 	hypercube_address_t address = calculate_hypercube_address (point, node);
 	// because node_try_add will always return a node
 	// 	we need to keep track of if node_try_add created the node
 	// 		or if the node was already there
 	bool added_new_node = false;
-	ph5_node_t* sub_node = node_try_add (&added_new_node, node, address, point);
+	ph5_node_t* sub_node = node_try_add (tree, &added_new_node, node, address, point);
 
 	// if there was not already a node at the point
 	// 	we created one and can return it now
@@ -487,7 +483,7 @@ static ph5_node_t* node_add (ph5_node_t* node, ph5_point_t* point)
 	}
 
 	// if there was already a node at the point
-	return node_handle_collision (node, sub_node, point);
+	return node_handle_collision (tree, node, sub_node, point);
 }
 
 static void entry_free (ph5_t* tree, ph5_node_t* node)
@@ -514,21 +510,25 @@ void ph5_initialize (
 	tree->element_create = element_create;
 	tree->element_destroy = element_destroy;
 
+	//tree->children_malloc = malloc;
+	//tree->children_realloc = realloc;
+	//tree->children_free = free;
+
 	if (children_malloc)
 	{
-		phtree_children_malloc = children_malloc;
+		tree->children_malloc = children_malloc;
 	}
 	if (children_realloc)
 	{
-		phtree_children_realloc = children_realloc;
+		tree->children_realloc = children_realloc;
 	}
 	if (children_free)
 	{
-		phtree_children_free = children_free;
+		tree->children_free = children_free;
 	}
 
 	ph5_point_t empty_point = {0};
-	node_initialize (&tree->root, 0, PHTREE_DEPTH - 1, &empty_point);
+	node_initialize (tree, &tree->root, 0, PHTREE_DEPTH - 1, &empty_point);
 }
 
 /*
@@ -569,7 +569,7 @@ static void free_nodes (ph5_t* tree, ph5_node_t* node)
 		free_function (tree, &node->children[iter]);
 	}
 
-	phtree_children_free (node->children);
+	tree->children_free (node->children);
 }
 
 /*
@@ -591,7 +591,7 @@ void ph5_clear (ph5_t* tree)
 	tree->root.child_count = 0;
 	tree->root.child_capacity = 0;
 
-	phtree_children_free (tree->root.children);
+	tree->children_free (tree->root.children);
 }
 
 /*
@@ -643,7 +643,7 @@ void* ph5_insert (ph5_t* tree, ph5_point_t* index, void* element)
 
 	while (!phtree_node_is_leaf (current_node))
 	{
-		current_node = node_add (current_node, index);
+		current_node = node_add (tree, current_node, index);
 	}
 
 	int offset = child_index (current_node, calculate_hypercube_address (index, current_node));
@@ -705,12 +705,12 @@ void* ph5_find (ph5_t* tree, ph5_point_t* index)
 	return entry->children;
 }
 
-void ph5_remove_child (ph5_node_t* node, hypercube_address_t address)
+void ph5_remove_child (ph5_t* tree, ph5_node_t* node, hypercube_address_t address)
 {
 	int index = child_index (node, address);
 	ph5_node_t* child = &node->children[index];
 
-	phtree_children_free (child->children);
+	tree->children_free (child->children);
 
 	memmove (node->children + index, node->children + index + 1, sizeof (ph5_node_t) * (node->child_count - index - 1));
 
@@ -773,7 +773,7 @@ void ph5_remove (ph5_t* tree, ph5_point_t* point)
 
 		ph5_node_t* parent = node_stack[stack_index];
 
-		ph5_remove_child (parent, calculate_hypercube_address (point, parent));
+		ph5_remove_child (tree, parent, calculate_hypercube_address (point, parent));
 		stack_index--;
 
 		// node_stack[0] is root
@@ -800,7 +800,7 @@ void ph5_remove (ph5_t* tree, ph5_point_t* point)
 			parent->children[index] = current_node->children[0];
 			parent->children[index].infix_length = parent->postfix_length - parent->children[index].postfix_length - 1;
 
-			phtree_children_free (current_node->children);
+			tree->children_free (current_node->children);
 
 			stack_index--;
 		}

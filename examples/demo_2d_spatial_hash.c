@@ -150,9 +150,9 @@ int main ()
 		tree,
 		element_2d_create,
 		element_2d_destroy,
-		NULL,
-		NULL,
-		NULL);
+		malloc,
+		realloc,
+		free);
 
 	// keep a separate list of the things we are creating
 	// 	so we can easily query a thing we know exists later
