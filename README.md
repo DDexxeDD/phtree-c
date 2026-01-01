@@ -119,6 +119,10 @@ If you are using a tree with an even number of dimensions to represent boxes of 
 
 Unless you only ever need single elements from the tree, you will need to define functions for iterating the entire tree with the for_each function, or iterating elements with window queries.  You will need to define a phtree_iteration_function_t.  An iteration function takes an element to be worked on and a pointer to any outside data you want to pass in to the function.  If you want to cache elements found in a query, pass the structure you want to cache elements in as the data argument, and put the elements in that structure using the iteration function.
 
+### Node children memory management
+
+Trees support custom memory management functions (malloc, realloc, free).  If you just want to use the standard functions, they _must_ be explicitly passed in at tree creation/initialization.  Memory management functions _do not_ have a default setting.  If you want to do something like allocate nodes from pools, assign your custom functions at tree creation/initialization.
+
 
 ## Advanced Usage
 
