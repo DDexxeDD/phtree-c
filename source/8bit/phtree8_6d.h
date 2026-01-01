@@ -181,10 +181,11 @@ typedef struct ph6_query_t
  * 	deallocates/frees whatever was allocated by element_create
  *
  *
- * the children_* functions are optional
+ * the children_* functions are REQUIRED
  *
- * passing NULL to the children_* parameters
- * 	will cause the phtree to use the std library memory functions (malloc, realloc, free)
+ * the children_* functions DO NOT have default values
+ * if you want to use the standard memory management functions (malloc, realloc, free)
+ * 	you _MUST_ explicitly pass them in
  *
  * if you want to do something like use a pool for tree nodes
  * 	the children_* functions are what you would use

@@ -1,4 +1,3 @@
-//#include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -509,10 +508,6 @@ void ph5_initialize (
 {
 	tree->element_create = element_create;
 	tree->element_destroy = element_destroy;
-
-	//tree->children_malloc = malloc;
-	//tree->children_realloc = realloc;
-	//tree->children_free = free;
 
 	if (children_malloc)
 	{
