@@ -2,6 +2,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifndef PHTREE_NO_STDLIB
+#include <stdlib.h>
+#endif
+
 #include "phtree64_6d.h"
 
 #if defined (_MSC_VER)
@@ -272,11 +276,7 @@ static void* add_child (ph6_t* tree, ph6_node_t* node, hypercube_address_t addre
 {
 	if (node->child_count >= node->child_capacity)
 	{
-		// add 4 slots
-		// 	no performance testing/tuning was done on this, just adding 4
-		// 		might be better to add some other number
-		node->children = tree->children_realloc (node->children, (node->child_capacity * sizeof (ph6_node_t)) + (sizeof (ph6_node_t) * 4));
-		node->child_capacity += 4;
+		node->children = tree->node_children_expand (node);
 	}
 
 	// need to set active_children before getting child index
@@ -320,8 +320,7 @@ static void node_add_entry (ph6_t* tree, ph6_node_t* node, ph6_point_t* point)
 
 static void node_initialize (ph6_t* tree, ph6_node_t* node, uint16_t infix_length, uint16_t postfix_length, ph6_point_t* point)
 {
-	node->children = tree->children_malloc (4 * sizeof (ph6_node_t));
-	node->child_capacity = 4;
+	tree->node_children_malloc (node);
 	node->child_count = 0;
 	node->active_children = 0;
 	node->infix_length = infix_length;
@@ -498,28 +497,90 @@ static void entry_free (ph6_t* tree, ph6_node_t* node)
 	}
 }
 
+ph6_node_t* ph6_default_children_malloc (ph6_node_t* node)
+{
+	node->children = malloc (4 * sizeof (ph6_node_t));
+	node->child_capacity = 4;
+
+	return node->children;
+}
+
+// default_children_expand
+// 	expands a node's children array by 4
+// 	no performance testing/tuning was done on this, just adding 4
+// 		might be better to add some other number
+ph6_node_t* ph6_default_children_expand (ph6_node_t* node)
+{
+#ifndef PHTREE_NO_STDLIB
+	node->children = realloc (node->children, (node->child_capacity * sizeof (ph6_node_t)) + (sizeof (ph6_node_t) * 4));
+	node->child_capacity += 4;
+
+	return node->children;
+#else
+	return NULL;
+#endif
+}
+
+ph6_node_t* ph6_default_children_shrink (ph6_node_t* node)
+{
+#ifndef PHTREE_NO_STDLIB
+	if (node->child_count > 4 && node->child_count <= node->child_capacity - 4)
+	{
+		node->children = realloc (node->children, ((node->child_capacity - 4) * sizeof (ph6_node_t)));
+		node->child_capacity -= 4;
+	}
+
+	return node->children;
+#else
+	return NULL;
+#endif
+}
+
+void ph6_default_children_free (ph6_node_t* node)
+{
+#ifndef PHTREE_NO_STDLIB
+	free (node->children);
+	node->child_capacity = 0;
+#else
+	return;
+#endif
+}
+
 void ph6_initialize (
 	ph6_t* tree,
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void*),
-	void* (*children_malloc) (size_t size),
-	void* (*children_realloc) (void* pointer, size_t size),
-	void (*children_free) (void* pointer))
+	ph6_node_t* (*node_children_malloc) (ph6_node_t* node),
+	ph6_node_t* (*node_children_expand) (ph6_node_t* node),
+	ph6_node_t* (*node_children_shrink) (ph6_node_t* node),
+	void (*node_children_free) (ph6_node_t* node))
 {
 	tree->element_create = element_create;
 	tree->element_destroy = element_destroy;
 
-	if (children_malloc)
+	tree->node_children_malloc = ph6_default_children_malloc;
+	tree->node_children_expand = ph6_default_children_expand;
+	tree->node_children_shrink = ph6_default_children_shrink;
+	tree->node_children_free = ph6_default_children_free;
+
+	if (node_children_malloc)
 	{
-		tree->children_malloc = children_malloc;
+		tree->node_children_malloc = node_children_malloc;
 	}
-	if (children_realloc)
+
+	if (node_children_expand)
 	{
-		tree->children_realloc = children_realloc;
+		tree->node_children_expand = node_children_expand;
 	}
-	if (children_free)
+
+	if (node_children_shrink)
 	{
-		tree->children_free = children_free;
+		tree->node_children_shrink = node_children_shrink;
+	}
+
+	if (node_children_free)
+	{
+		tree->node_children_free = node_children_free;
 	}
 
 	ph6_point_t empty_point = {0};
@@ -532,12 +593,13 @@ void ph6_initialize (
 ph6_t ph6_create (
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void* element),
-	void* (*children_malloc) (size_t size),
-	void* (*children_realloc) (void* pointer, size_t size),
-	void (*children_free) (void* pointer))
+	ph6_node_t* (*node_children_malloc) (ph6_node_t* node),
+	ph6_node_t* (*node_children_expand) (ph6_node_t* node),
+	ph6_node_t* (*node_children_shrink) (ph6_node_t* node),
+	void (*node_children_free) (ph6_node_t* node))
 {
 	ph6_t tree;
-	ph6_initialize (&tree, element_create, element_destroy, children_malloc, children_realloc, children_free);
+	ph6_initialize (&tree, element_create, element_destroy, node_children_malloc, node_children_expand, node_children_shrink, node_children_free);
 
 	return tree;
 }
@@ -564,7 +626,7 @@ static void free_nodes (ph6_t* tree, ph6_node_t* node)
 		free_function (tree, &node->children[iter]);
 	}
 
-	tree->children_free (node->children);
+	tree->node_children_free (node->children);
 }
 
 /*
@@ -586,7 +648,7 @@ void ph6_clear (ph6_t* tree)
 	tree->root.child_count = 0;
 	tree->root.child_capacity = 0;
 
-	tree->children_free (tree->root.children);
+	tree->node_children_free (tree->root.children);
 }
 
 /*
@@ -705,7 +767,7 @@ void ph6_remove_child (ph6_t* tree, ph6_node_t* node, hypercube_address_t addres
 	int index = child_index (node, address);
 	ph6_node_t* child = &node->children[index];
 
-	tree->children_free (child->children);
+	tree->node_children_free (child->children);
 
 	memmove (node->children + index, node->children + index + 1, sizeof (ph6_node_t) * (node->child_count - index - 1));
 
@@ -795,7 +857,7 @@ void ph6_remove (ph6_t* tree, ph6_point_t* point)
 			parent->children[index] = current_node->children[0];
 			parent->children[index].infix_length = parent->postfix_length - parent->children[index].postfix_length - 1;
 
-			tree->children_free (current_node->children);
+			tree->node_children_free (current_node->children);
 
 			stack_index--;
 		}
@@ -896,7 +958,7 @@ void ph6_query (ph6_t* tree, ph6_query_t* query, void* data)
  * query_set does not need to convert external values in to internal points/keys
  * so it needs to be its own function
  */
-void ph6_query_set (ph6_t* tree, ph6_query_t* query, ph6_point_t* min, ph6_point_t* max, phtree_iteration_function_t function)
+void ph6_query_set (ph6_query_t* query, ph6_point_t* min, ph6_point_t* max, phtree_iteration_function_t function)
 {
 	ph6_query_clear (query);
 
@@ -919,15 +981,15 @@ void ph6_query_set (ph6_t* tree, ph6_query_t* query, ph6_point_t* min, ph6_point
 	query->function = function;
 }
 
-ph6_query_t ph6_query_create (ph6_t* tree, void* min, void* max, phtree_iteration_function_t function)
+ph6_query_t ph6_query_create (void* min, void* max, phtree_iteration_function_t function)
 {
 	ph6_query_t query;
-	ph6_query_set (tree, &query, min, max, function);
+	ph6_query_set (&query, min, max, function);
 
 	return query;
 }
 
-void ph6_query_box_set (ph6_t* tree, ph6_query_t* query, bool intersect, ph6_point_t* min_in, ph6_point_t* max_in, phtree_iteration_function_t function)
+void ph6_query_box_set (ph6_query_t* query, bool intersect, ph6_point_t* min_in, ph6_point_t* max_in, phtree_iteration_function_t function)
 {
 	if (!query)
 	{
@@ -950,12 +1012,12 @@ void ph6_query_box_set (ph6_t* tree, ph6_query_t* query, bool intersect, ph6_poi
 		}
 	}
 
-	ph6_query_set (tree, query, &min, &max, function);
+	ph6_query_set (query, &min, &max, function);
 }
 
-void ph6_query_box_point_set (ph6_t* tree, ph6_query_t* query, ph6_point_t* point, phtree_iteration_function_t function)
+void ph6_query_box_point_set (ph6_query_t* query, ph6_point_t* point, phtree_iteration_function_t function)
 {
-	ph6_query_box_set (tree, query, true, point, point, function);
+	ph6_query_box_set (query, true, point, point, function);
 }
 
 /*

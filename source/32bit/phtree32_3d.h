@@ -121,33 +121,36 @@ typedef struct ph3_t
 	void (*element_destroy) (void* element);
 
 	/*
-	 * optional
 	 * allocate child nodes for a node in the tree
 	 *
-	 * if you want to allocate nodes from a pool
-	 * 	do it here
-	 *
-	 * this will default to std malloc
+	 * this function has no count or size argument as it is only used when initializing a node
+	 * 	the number of nodes allocated is set inside of this function
 	 */
-	void* (*children_malloc) (size_t size);
+	ph3_node_t* (*node_children_malloc) (ph3_node_t* node);
+
 	/*
-	 * optional
-	 * reallocate child nodes for a node in the tree
-	 * 	when a node's children array needs to grow
-	 *
-	 * if you want to reallocate a node from a pool
-	 * 	do it here
-	 *
-	 * this will default to std realloc
+	 * expand a node's chilren array
+	 * in node_children_expand you _must_ set the child_capacity value of the node being passed in
+	 * node_children_expand returns a pointer to the new child array
 	 */
-	void* (*children_realloc) (void* pointer, size_t new_size);
+	ph3_node_t* (*node_children_expand) (ph3_node_t* node);
+
 	/*
-	 * optional
+	 * ! this function is currently unused !
+	 *
+	 * shrink a node's children array
+	 * in node_children_shrink you _must_ set the child_capacity value of the node being passed in
+	 * node_children_shrink returns a pointer to the new child array
+	 */
+	ph3_node_t* (*node_children_shrink) (ph3_node_t* node);
+
+	/*
 	 * free a node's children array
-	 *
-	 * this will default to std free
+	 * 	you must set the node's child_capacity to 0
+	 * node_children_free is used to free the _children_ of a node
+	 * DO NOT free the node being passed in
 	 */
-	void (*children_free) (void* pointer);
+	void (*node_children_free) (ph3_node_t* node);
 } ph3_t;
 
 typedef struct ph3_query_t
@@ -182,11 +185,8 @@ typedef struct ph3_query_t
  * 	deallocates/frees whatever was allocated by element_create
  *
  *
- * the children_* functions are REQUIRED
- *
- * the children_* functions DO NOT have default values
- * if you want to use the standard memory management functions (malloc, realloc, free)
- * 	you _MUST_ explicitly pass them in
+ * if the node_children_* functions are NULL
+ * 	they will be assigned default functions
  *
  * if you want to do something like use a pool for tree nodes
  * 	the children_* functions are what you would use
@@ -195,9 +195,10 @@ void ph3_initialize (
 	ph3_t* tree,
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void*),
-	void* (*children_malloc) (size_t size),
-	void* (*children_realloc) (void* pointer, size_t size),
-	void (*children_free) (void* pointer));
+	ph3_node_t* (*node_children_malloc) (ph3_node_t* node),
+	ph3_node_t* (*node_children_expand) (ph3_node_t* node),
+	ph3_node_t* (*node_children_shrink) (ph3_node_t* node),
+	void (*node_children_free) (ph3_node_t* node));
 
 /*
  * ph3_create
@@ -206,9 +207,10 @@ void ph3_initialize (
 ph3_t ph3_create (
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void* element),
-	void* (*children_malloc) (size_t size),
-	void* (*children_realloc) (void* pointer, size_t size),
-	void (*children_free) (void* pointer));
+	ph3_node_t* (*node_children_malloc) (ph3_node_t* node),
+	ph3_node_t* (*node_children_expand) (ph3_node_t* node),
+	ph3_node_t* (*node_children_shrink) (ph3_node_t* node),
+	void (*node_children_free) (ph3_node_t* node));
 
 /*
  * clear all entries/elements from the tree
@@ -264,8 +266,8 @@ void ph3_query (ph3_t* tree, ph3_query_t* query, void* data);
  * ph3_query_create
  * 	if you want to declare and initialize a query in one line
  */
-ph3_query_t ph3_query_create (ph3_t* tree, void* min, void* max, phtree_iteration_function_t function);
-void ph3_query_set (ph3_t* tree, ph3_query_t* query, ph3_point_t* min, ph3_point_t* max, phtree_iteration_function_t function);
+ph3_query_t ph3_query_create (void* min, void* max, phtree_iteration_function_t function);
+void ph3_query_set (ph3_query_t* query, ph3_point_t* min, ph3_point_t* max, phtree_iteration_function_t function);
 void ph3_query_clear (ph3_query_t* query);
 
 /*

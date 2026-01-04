@@ -121,33 +121,36 @@ typedef struct ph2_t
 	void (*element_destroy) (void* element);
 
 	/*
-	 * optional
 	 * allocate child nodes for a node in the tree
 	 *
-	 * if you want to allocate nodes from a pool
-	 * 	do it here
-	 *
-	 * this will default to std malloc
+	 * this function has no count or size argument as it is only used when initializing a node
+	 * 	the number of nodes allocated is set inside of this function
 	 */
-	void* (*children_malloc) (size_t size);
+	ph2_node_t* (*node_children_malloc) (ph2_node_t* node);
+
 	/*
-	 * optional
-	 * reallocate child nodes for a node in the tree
-	 * 	when a node's children array needs to grow
-	 *
-	 * if you want to reallocate a node from a pool
-	 * 	do it here
-	 *
-	 * this will default to std realloc
+	 * expand a node's chilren array
+	 * in node_children_expand you _must_ set the child_capacity value of the node being passed in
+	 * node_children_expand returns a pointer to the new child array
 	 */
-	void* (*children_realloc) (void* pointer, size_t new_size);
+	ph2_node_t* (*node_children_expand) (ph2_node_t* node);
+
 	/*
-	 * optional
+	 * ! this function is currently unused !
+	 *
+	 * shrink a node's children array
+	 * in node_children_shrink you _must_ set the child_capacity value of the node being passed in
+	 * node_children_shrink returns a pointer to the new child array
+	 */
+	ph2_node_t* (*node_children_shrink) (ph2_node_t* node);
+
+	/*
 	 * free a node's children array
-	 *
-	 * this will default to std free
+	 * 	you must set the node's child_capacity to 0
+	 * node_children_free is used to free the _children_ of a node
+	 * DO NOT free the node being passed in
 	 */
-	void (*children_free) (void* pointer);
+	void (*node_children_free) (ph2_node_t* node);
 } ph2_t;
 
 typedef struct ph2_query_t
@@ -182,11 +185,8 @@ typedef struct ph2_query_t
  * 	deallocates/frees whatever was allocated by element_create
  *
  *
- * the children_* functions are REQUIRED
- *
- * the children_* functions DO NOT have default values
- * if you want to use the standard memory management functions (malloc, realloc, free)
- * 	you _MUST_ explicitly pass them in
+ * if the node_children_* functions are NULL
+ * 	they will be assigned default functions
  *
  * if you want to do something like use a pool for tree nodes
  * 	the children_* functions are what you would use
@@ -195,9 +195,10 @@ void ph2_initialize (
 	ph2_t* tree,
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void*),
-	void* (*children_malloc) (size_t size),
-	void* (*children_realloc) (void* pointer, size_t size),
-	void (*children_free) (void* pointer));
+	ph2_node_t* (*node_children_malloc) (ph2_node_t* node),
+	ph2_node_t* (*node_children_expand) (ph2_node_t* node),
+	ph2_node_t* (*node_children_shrink) (ph2_node_t* node),
+	void (*node_children_free) (ph2_node_t* node));
 
 /*
  * ph2_create
@@ -206,9 +207,10 @@ void ph2_initialize (
 ph2_t ph2_create (
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void* element),
-	void* (*children_malloc) (size_t size),
-	void* (*children_realloc) (void* pointer, size_t size),
-	void (*children_free) (void* pointer));
+	ph2_node_t* (*node_children_malloc) (ph2_node_t* node),
+	ph2_node_t* (*node_children_expand) (ph2_node_t* node),
+	ph2_node_t* (*node_children_shrink) (ph2_node_t* node),
+	void (*node_children_free) (ph2_node_t* node));
 
 /*
  * clear all entries/elements from the tree
@@ -264,8 +266,8 @@ void ph2_query (ph2_t* tree, ph2_query_t* query, void* data);
  * ph2_query_create
  * 	if you want to declare and initialize a query in one line
  */
-ph2_query_t ph2_query_create (ph2_t* tree, void* min, void* max, phtree_iteration_function_t function);
-void ph2_query_set (ph2_t* tree, ph2_query_t* query, ph2_point_t* min, ph2_point_t* max, phtree_iteration_function_t function);
+ph2_query_t ph2_query_create (void* min, void* max, phtree_iteration_function_t function);
+void ph2_query_set (ph2_query_t* query, ph2_point_t* min, ph2_point_t* max, phtree_iteration_function_t function);
 /*
  * box queries are only relevant in trees with an even number of dimensions
  * in a phtree of DIMENSIONS you can represent axis aligned boxes of (DIMENSIONS / 2)
@@ -303,14 +305,14 @@ void ph2_query_set (ph2_t* tree, ph2_query_t* query, ph2_point_t* min, ph2_point
  * set intersect to 'true' to include intersecting boxes
  * set intersect to 'false' to only include boxes entirely contained in the query box
  */
-void ph2_query_box_set (ph2_t* tree, ph2_query_t* query, bool intersect, ph2_point_t* min, ph2_point_t* max, phtree_iteration_function_t function);
+void ph2_query_box_set (ph2_query_t* query, bool intersect, ph2_point_t* min, ph2_point_t* max, phtree_iteration_function_t function);
 
 /*
  * ph2_query_box_point_set is a convenience function
  * 	for querying a single lower dimensional point against higher dimensional boxes
  * you can do the same with regular ph2_query_box_set
  */
-void ph2_query_box_point_set (ph2_t* tree, ph2_query_t* query, ph2_point_t* point, phtree_iteration_function_t function);
+void ph2_query_box_point_set (ph2_query_t* query, ph2_point_t* point, phtree_iteration_function_t function);
 void ph2_query_clear (ph2_query_t* query);
 
 /*

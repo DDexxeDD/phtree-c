@@ -2,6 +2,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifndef PHTREE_NO_STDLIB
+#include <stdlib.h>
+#endif
+
 #include "phtree32_3d.h"
 
 #if defined (_MSC_VER)
@@ -272,11 +276,7 @@ static void* add_child (ph3_t* tree, ph3_node_t* node, hypercube_address_t addre
 {
 	if (node->child_count >= node->child_capacity)
 	{
-		// add 4 slots
-		// 	no performance testing/tuning was done on this, just adding 4
-		// 		might be better to add some other number
-		node->children = tree->children_realloc (node->children, (node->child_capacity * sizeof (ph3_node_t)) + (sizeof (ph3_node_t) * 4));
-		node->child_capacity += 4;
+		node->children = tree->node_children_expand (node);
 	}
 
 	// need to set active_children before getting child index
@@ -320,8 +320,7 @@ static void node_add_entry (ph3_t* tree, ph3_node_t* node, ph3_point_t* point)
 
 static void node_initialize (ph3_t* tree, ph3_node_t* node, uint16_t infix_length, uint16_t postfix_length, ph3_point_t* point)
 {
-	node->children = tree->children_malloc (4 * sizeof (ph3_node_t));
-	node->child_capacity = 4;
+	tree->node_children_malloc (node);
 	node->child_count = 0;
 	node->active_children = 0;
 	node->infix_length = infix_length;
@@ -498,28 +497,90 @@ static void entry_free (ph3_t* tree, ph3_node_t* node)
 	}
 }
 
+ph3_node_t* ph3_default_children_malloc (ph3_node_t* node)
+{
+	node->children = malloc (4 * sizeof (ph3_node_t));
+	node->child_capacity = 4;
+
+	return node->children;
+}
+
+// default_children_expand
+// 	expands a node's children array by 4
+// 	no performance testing/tuning was done on this, just adding 4
+// 		might be better to add some other number
+ph3_node_t* ph3_default_children_expand (ph3_node_t* node)
+{
+#ifndef PHTREE_NO_STDLIB
+	node->children = realloc (node->children, (node->child_capacity * sizeof (ph3_node_t)) + (sizeof (ph3_node_t) * 4));
+	node->child_capacity += 4;
+
+	return node->children;
+#else
+	return NULL;
+#endif
+}
+
+ph3_node_t* ph3_default_children_shrink (ph3_node_t* node)
+{
+#ifndef PHTREE_NO_STDLIB
+	if (node->child_count > 4 && node->child_count <= node->child_capacity - 4)
+	{
+		node->children = realloc (node->children, ((node->child_capacity - 4) * sizeof (ph3_node_t)));
+		node->child_capacity -= 4;
+	}
+
+	return node->children;
+#else
+	return NULL;
+#endif
+}
+
+void ph3_default_children_free (ph3_node_t* node)
+{
+#ifndef PHTREE_NO_STDLIB
+	free (node->children);
+	node->child_capacity = 0;
+#else
+	return;
+#endif
+}
+
 void ph3_initialize (
 	ph3_t* tree,
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void*),
-	void* (*children_malloc) (size_t size),
-	void* (*children_realloc) (void* pointer, size_t size),
-	void (*children_free) (void* pointer))
+	ph3_node_t* (*node_children_malloc) (ph3_node_t* node),
+	ph3_node_t* (*node_children_expand) (ph3_node_t* node),
+	ph3_node_t* (*node_children_shrink) (ph3_node_t* node),
+	void (*node_children_free) (ph3_node_t* node))
 {
 	tree->element_create = element_create;
 	tree->element_destroy = element_destroy;
 
-	if (children_malloc)
+	tree->node_children_malloc = ph3_default_children_malloc;
+	tree->node_children_expand = ph3_default_children_expand;
+	tree->node_children_shrink = ph3_default_children_shrink;
+	tree->node_children_free = ph3_default_children_free;
+
+	if (node_children_malloc)
 	{
-		tree->children_malloc = children_malloc;
+		tree->node_children_malloc = node_children_malloc;
 	}
-	if (children_realloc)
+
+	if (node_children_expand)
 	{
-		tree->children_realloc = children_realloc;
+		tree->node_children_expand = node_children_expand;
 	}
-	if (children_free)
+
+	if (node_children_shrink)
 	{
-		tree->children_free = children_free;
+		tree->node_children_shrink = node_children_shrink;
+	}
+
+	if (node_children_free)
+	{
+		tree->node_children_free = node_children_free;
 	}
 
 	ph3_point_t empty_point = {0};
@@ -532,12 +593,13 @@ void ph3_initialize (
 ph3_t ph3_create (
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void* element),
-	void* (*children_malloc) (size_t size),
-	void* (*children_realloc) (void* pointer, size_t size),
-	void (*children_free) (void* pointer))
+	ph3_node_t* (*node_children_malloc) (ph3_node_t* node),
+	ph3_node_t* (*node_children_expand) (ph3_node_t* node),
+	ph3_node_t* (*node_children_shrink) (ph3_node_t* node),
+	void (*node_children_free) (ph3_node_t* node))
 {
 	ph3_t tree;
-	ph3_initialize (&tree, element_create, element_destroy, children_malloc, children_realloc, children_free);
+	ph3_initialize (&tree, element_create, element_destroy, node_children_malloc, node_children_expand, node_children_shrink, node_children_free);
 
 	return tree;
 }
@@ -564,7 +626,7 @@ static void free_nodes (ph3_t* tree, ph3_node_t* node)
 		free_function (tree, &node->children[iter]);
 	}
 
-	tree->children_free (node->children);
+	tree->node_children_free (node->children);
 }
 
 /*
@@ -586,7 +648,7 @@ void ph3_clear (ph3_t* tree)
 	tree->root.child_count = 0;
 	tree->root.child_capacity = 0;
 
-	tree->children_free (tree->root.children);
+	tree->node_children_free (tree->root.children);
 }
 
 /*
@@ -705,7 +767,7 @@ void ph3_remove_child (ph3_t* tree, ph3_node_t* node, hypercube_address_t addres
 	int index = child_index (node, address);
 	ph3_node_t* child = &node->children[index];
 
-	tree->children_free (child->children);
+	tree->node_children_free (child->children);
 
 	memmove (node->children + index, node->children + index + 1, sizeof (ph3_node_t) * (node->child_count - index - 1));
 
@@ -795,7 +857,7 @@ void ph3_remove (ph3_t* tree, ph3_point_t* point)
 			parent->children[index] = current_node->children[0];
 			parent->children[index].infix_length = parent->postfix_length - parent->children[index].postfix_length - 1;
 
-			tree->children_free (current_node->children);
+			tree->node_children_free (current_node->children);
 
 			stack_index--;
 		}
@@ -896,7 +958,7 @@ void ph3_query (ph3_t* tree, ph3_query_t* query, void* data)
  * query_set does not need to convert external values in to internal points/keys
  * so it needs to be its own function
  */
-void ph3_query_set (ph3_t* tree, ph3_query_t* query, ph3_point_t* min, ph3_point_t* max, phtree_iteration_function_t function)
+void ph3_query_set (ph3_query_t* query, ph3_point_t* min, ph3_point_t* max, phtree_iteration_function_t function)
 {
 	ph3_query_clear (query);
 
@@ -919,10 +981,10 @@ void ph3_query_set (ph3_t* tree, ph3_query_t* query, ph3_point_t* min, ph3_point
 	query->function = function;
 }
 
-ph3_query_t ph3_query_create (ph3_t* tree, void* min, void* max, phtree_iteration_function_t function)
+ph3_query_t ph3_query_create (void* min, void* max, phtree_iteration_function_t function)
 {
 	ph3_query_t query;
-	ph3_query_set (tree, &query, min, max, function);
+	ph3_query_set (&query, min, max, function);
 
 	return query;
 }

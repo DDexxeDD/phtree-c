@@ -120,9 +120,10 @@ int main ()
 		tree,
 		element_simple_create,
 		element_simple_destroy,
-		malloc,
-		realloc,
-		free);
+		NULL,
+		NULL,
+		NULL,
+		NULL);
 
 	for (int32_t iter = -10; iter <= 10; iter += 2)
 	{
@@ -147,7 +148,7 @@ int main ()
 	ph1_point_t query_min = int32_to_point (min);
 	ph1_point_t query_max = int32_to_point (max);
 	ph1_query_t query;
-	ph1_query_set (tree, &query, &query_min, &query_max, query_cache_1d);
+	ph1_query_set (&query, &query_min, &query_max, query_cache_1d);
 
 	// a cache for the elements our query finds
 	// !! if the tree changes after the cache is created (insertions/removals) !!

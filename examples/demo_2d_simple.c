@@ -115,9 +115,10 @@ int main ()
 		tree,
 		element_2d_create,
 		element_2d_destroy,
-		malloc,
-		realloc,
-		free);
+		NULL,
+		NULL,
+		NULL,
+		NULL);
 
 	// keep a separate list of the things we are creating
 	// 	so we can easily query things we know exist later
@@ -161,7 +162,7 @@ int main ()
 	ph2_query_t query;
 	// set up a query for points in the +,+ quadrant
 	// 	hopefully rand generated some points there :D
-	ph2_query_set (tree, &query, &min, &max, query_cache_2d);
+	ph2_query_set (&query, &min, &max, query_cache_2d);
 
 	// a cache for the elements our query finds
 	// !! if the tree changes after the cache is created (insertions/removals) !!

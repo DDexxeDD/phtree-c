@@ -2,6 +2,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifndef PHTREE_NO_STDLIB
+#include <stdlib.h>
+#endif
+
 #include "phtree{{bit_width}}_{{dimensions}}d.h"
 
 #if defined (_MSC_VER)
@@ -290,11 +294,7 @@ static void* add_child ({{prefix}}_t* tree, {{prefix}}_node_t* node, hypercube_a
 {
 	if (node->child_count >= node->child_capacity)
 	{
-		// add 4 slots
-		// 	no performance testing/tuning was done on this, just adding 4
-		// 		might be better to add some other number
-		node->children = tree->children_realloc (node->children, (node->child_capacity * sizeof ({{prefix}}_node_t)) + (sizeof ({{prefix}}_node_t) * 4));
-		node->child_capacity += 4;
+		node->children = tree->node_children_expand (node);
 	}
 
 	// need to set active_children before getting child index
@@ -338,8 +338,7 @@ static void node_add_entry ({{prefix}}_t* tree, {{prefix}}_node_t* node, {{prefi
 
 static void node_initialize ({{prefix}}_t* tree, {{prefix}}_node_t* node, uint16_t infix_length, uint16_t postfix_length, {{prefix}}_point_t* point)
 {
-	node->children = tree->children_malloc ({{^2d}}2{{/2d}}{{#2d}}4{{/2d}} * sizeof ({{prefix}}_node_t));
-	node->child_capacity = 4;
+	tree->node_children_malloc (node);
 	node->child_count = 0;
 	node->active_children = 0;
 	node->infix_length = infix_length;
@@ -516,28 +515,98 @@ static void entry_free ({{prefix}}_t* tree, {{prefix}}_node_t* node)
 	}
 }
 
+{{prefix}}_node_t* {{prefix}}_default_children_malloc ({{prefix}}_node_t* node)
+{
+	node->children = malloc ({{^2d}}2{{/2d}}{{#2d}}4{{/2d}} * sizeof ({{prefix}}_node_t));
+	node->child_capacity = {{^2d}}2{{/2d}}{{#2d}}4{{/2d}};
+
+	return node->children;
+}
+
+// default_children_expand
+// 	expands a node's children array by 4
+// 	no performance testing/tuning was done on this, just adding 4
+// 		might be better to add some other number
+{{^2d}}
+// children should never be expanded in a 1d tree
+// so this should never be used
+{{/2d}}
+{{prefix}}_node_t* {{prefix}}_default_children_expand ({{prefix}}_node_t* node)
+{
+#ifndef PHTREE_NO_STDLIB
+	node->children = realloc (node->children, (node->child_capacity * sizeof ({{prefix}}_node_t)) + (sizeof ({{prefix}}_node_t) * 4));
+	node->child_capacity += 4;
+
+	return node->children;
+#else
+	return NULL;
+#endif
+}
+
+{{^2d}}
+// children should never be shrunk in a 1d tree
+// when this is called the if condition will fail and nothing will happen
+{{/2d}}
+{{prefix}}_node_t* {{prefix}}_default_children_shrink ({{prefix}}_node_t* node)
+{
+#ifndef PHTREE_NO_STDLIB
+	if (node->child_count > 4 && node->child_count <= node->child_capacity - 4)
+	{
+		node->children = realloc (node->children, ((node->child_capacity - 4) * sizeof ({{prefix}}_node_t)));
+		node->child_capacity -= 4;
+	}
+
+	return node->children;
+#else
+	return NULL;
+#endif
+}
+
+void {{prefix}}_default_children_free ({{prefix}}_node_t* node)
+{
+#ifndef PHTREE_NO_STDLIB
+	free (node->children);
+	node->child_capacity = 0;
+#else
+	return;
+#endif
+}
+
 void {{prefix}}_initialize (
 	{{prefix}}_t* tree,
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void*),
-	void* (*children_malloc) (size_t size),
-	void* (*children_realloc) (void* pointer, size_t size),
-	void (*children_free) (void* pointer))
+	{{prefix}}_node_t* (*node_children_malloc) ({{prefix}}_node_t* node),
+	{{prefix}}_node_t* (*node_children_expand) ({{prefix}}_node_t* node),
+	{{prefix}}_node_t* (*node_children_shrink) ({{prefix}}_node_t* node),
+	void (*node_children_free) ({{prefix}}_node_t* node))
 {
 	tree->element_create = element_create;
 	tree->element_destroy = element_destroy;
 
-	if (children_malloc)
+	tree->node_children_malloc = {{prefix}}_default_children_malloc;
+	tree->node_children_expand = {{prefix}}_default_children_expand;
+	tree->node_children_shrink = {{prefix}}_default_children_shrink;
+	tree->node_children_free = {{prefix}}_default_children_free;
+
+	if (node_children_malloc)
 	{
-		tree->children_malloc = children_malloc;
+		tree->node_children_malloc = node_children_malloc;
 	}
-	if (children_realloc)
+
+	if (node_children_expand)
 	{
-		tree->children_realloc = children_realloc;
+		tree->node_children_expand = node_children_expand;
 	}
-	if (children_free)
+
+	if (node_children_shrink)
 	{
-		tree->children_free = children_free;
+		tree->node_children_shrink = node_children_shrink;
+	}
+
+	if (node_children_free)
+	{
+		tree->node_children_free = node_children_free;
 	}
 
 	{{prefix}}_point_t empty_point = {0};
@@ -550,12 +619,13 @@ void {{prefix}}_initialize (
 {{prefix}}_t {{prefix}}_create (
 	void* (*element_create) (void* input),
 	void (*element_destroy) (void* element),
-	void* (*children_malloc) (size_t size),
-	void* (*children_realloc) (void* pointer, size_t size),
-	void (*children_free) (void* pointer))
+	{{prefix}}_node_t* (*node_children_malloc) ({{prefix}}_node_t* node),
+	{{prefix}}_node_t* (*node_children_expand) ({{prefix}}_node_t* node),
+	{{prefix}}_node_t* (*node_children_shrink) ({{prefix}}_node_t* node),
+	void (*node_children_free) ({{prefix}}_node_t* node))
 {
 	{{prefix}}_t tree;
-	{{prefix}}_initialize (&tree, element_create, element_destroy, children_malloc, children_realloc, children_free);
+	{{prefix}}_initialize (&tree, element_create, element_destroy, node_children_malloc, node_children_expand, node_children_shrink, node_children_free);
 
 	return tree;
 }
@@ -582,7 +652,7 @@ static void free_nodes ({{prefix}}_t* tree, {{prefix}}_node_t* node)
 		free_function (tree, &node->children[iter]);
 	}
 
-	tree->children_free (node->children);
+	tree->node_children_free (node->children);
 }
 
 /*
@@ -604,7 +674,7 @@ void {{prefix}}_clear ({{prefix}}_t* tree)
 	tree->root.child_count = 0;
 	tree->root.child_capacity = 0;
 
-	tree->children_free (tree->root.children);
+	tree->node_children_free (tree->root.children);
 }
 
 /*
@@ -723,7 +793,7 @@ void {{prefix}}_remove_child ({{prefix}}_t* tree, {{prefix}}_node_t* node, hyper
 	int index = child_index (node, address);
 	{{prefix}}_node_t* child = &node->children[index];
 
-	tree->children_free (child->children);
+	tree->node_children_free (child->children);
 
 	memmove (node->children + index, node->children + index + 1, sizeof ({{prefix}}_node_t) * (node->child_count - index - 1));
 
@@ -813,7 +883,7 @@ void {{prefix}}_remove ({{prefix}}_t* tree, {{prefix}}_point_t* point)
 			parent->children[index] = current_node->children[0];
 			parent->children[index].infix_length = parent->postfix_length - parent->children[index].postfix_length - 1;
 
-			tree->children_free (current_node->children);
+			tree->node_children_free (current_node->children);
 
 			stack_index--;
 		}
@@ -914,7 +984,7 @@ void {{prefix}}_query ({{prefix}}_t* tree, {{prefix}}_query_t* query, void* data
  * query_set does not need to convert external values in to internal points/keys
  * so it needs to be its own function
  */
-void {{prefix}}_query_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, {{prefix}}_point_t* min, {{prefix}}_point_t* max, phtree_iteration_function_t function)
+void {{prefix}}_query_set ({{prefix}}_query_t* query, {{prefix}}_point_t* min, {{prefix}}_point_t* max, phtree_iteration_function_t function)
 {
 	{{prefix}}_query_clear (query);
 
@@ -937,16 +1007,16 @@ void {{prefix}}_query_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, {{pref
 	query->function = function;
 }
 
-{{prefix}}_query_t {{prefix}}_query_create ({{prefix}}_t* tree, void* min, void* max, phtree_iteration_function_t function)
+{{prefix}}_query_t {{prefix}}_query_create (void* min, void* max, phtree_iteration_function_t function)
 {
 	{{prefix}}_query_t query;
-	{{prefix}}_query_set (tree, &query, min, max, function);
+	{{prefix}}_query_set (&query, min, max, function);
 
 	return query;
 }
 
 {{#even}}
-void {{prefix}}_query_box_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, bool intersect, {{prefix}}_point_t* min_in, {{prefix}}_point_t* max_in, phtree_iteration_function_t function)
+void {{prefix}}_query_box_set ({{prefix}}_query_t* query, bool intersect, {{prefix}}_point_t* min_in, {{prefix}}_point_t* max_in, phtree_iteration_function_t function)
 {
 	if (!query)
 	{
@@ -969,12 +1039,12 @@ void {{prefix}}_query_box_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, bo
 		}
 	}
 
-	{{prefix}}_query_set (tree, query, &min, &max, function);
+	{{prefix}}_query_set (query, &min, &max, function);
 }
 
-void {{prefix}}_query_box_point_set ({{prefix}}_t* tree, {{prefix}}_query_t* query, {{prefix}}_point_t* point, phtree_iteration_function_t function)
+void {{prefix}}_query_box_point_set ({{prefix}}_query_t* query, {{prefix}}_point_t* point, phtree_iteration_function_t function)
 {
-	{{prefix}}_query_box_set (tree, query, true, point, point, function);
+	{{prefix}}_query_box_set (query, true, point, point, function);
 }
 {{/even}}
 
